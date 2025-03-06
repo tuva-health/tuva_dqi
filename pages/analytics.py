@@ -251,7 +251,7 @@ def get_outstanding_errors():
     conn = get_db_connection()
     df = pd.read_sql_query("""
         SELECT 
-            UNIQUE_ID, SEVERITY_LEVEL, TABLE_NAME, TEST_COLUMN_NAME, 
+            UNIQUE_ID, SEVERITY_LEVEL, DATABASE_NAME, TABLE_NAME, TEST_COLUMN_NAME, 
             TEST_ORIGINAL_NAME, TEST_TYPE, TEST_SUB_TYPE, TEST_DESCRIPTION,
             TEST_RESULTS_QUERY, RESULT_ROWS,
             FLAG_SERVICE_CATEGORIES, FLAG_CCSR, FLAG_CMS_CHRONIC_CONDITIONS,
@@ -499,7 +499,12 @@ def update_mart_status(n_clicks, upload_output):
         cards = []
         for mart, status in mart_statuses.items():
             # Format the mart name for display
-            display_name = mart.replace('_', ' ').title()
+            display_name = (mart.replace('_', ' ').title()
+                            .replace('Ccsr', 'CCSR')
+                            .replace('Cms', 'CMS')
+                            .replace('Ed', 'ED')
+                            .replace('Pmpm', 'PMPM')
+                            )
 
             # Choose icon and color based on status
             if status == 'fail':
@@ -562,7 +567,7 @@ def update_outstanding_errors(n_clicks, upload_output):
         for i, row in df.iterrows():
             rows.append(
                 dbc.Row([
-                    dbc.Col(str(row['SEVERITY_LEVEL']), width=1, className="align-self-center"),
+                    dbc.Col(str(int(row['SEVERITY_LEVEL'])), width=1, className="align-self-center"),  # Convert to int
                     dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center"),
                     dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center"),
                     dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center"),
@@ -575,10 +580,10 @@ def update_outstanding_errors(n_clicks, upload_output):
                             id={"type": "error-info-button", "index": i},
                             color="info",
                             size="sm",
-                            className="mr-1"
+                            className="my-1"  # Add vertical margin to center the button
                         ),
                         width=1,
-                        className="align-self-center"
+                        className="d-flex align-items-center"  # Better vertical centering
                     ),
                 ],
                     className="mb-2 border-bottom pb-2",
@@ -745,8 +750,12 @@ def toggle_error_modal(btn_clicks, json_data, is_open):
 
             dbc.Row([
                 dbc.Col([
-                    html.P([html.Strong("Unique ID: "), row['UNIQUE_ID']]),
-                    html.P([html.Strong("Severity Level: "), str(row['SEVERITY_LEVEL'])]),
+                    # Add word-break for long IDs and convert severity to integer
+                    html.P([html.Strong("Unique ID: "),
+                           html.Span(row['UNIQUE_ID'], style={"word-break": "break-all"})]),
+                    html.P([html.Strong("Severity Level: "), str(int(row['SEVERITY_LEVEL']))]),
+                    # Add database name
+                    html.P([html.Strong("Database: "), row['DATABASE_NAME']]),
                     html.P([html.Strong("Table: "), row['TABLE_NAME']]),
                     html.P([html.Strong("Column: "), row['TEST_COLUMN_NAME']]),
                     html.P([html.Strong("Test Name: "), row['TEST_ORIGINAL_NAME']]),
@@ -762,26 +771,18 @@ def toggle_error_modal(btn_clicks, json_data, is_open):
             html.Hr(),
             html.H6("Test Results Query:"),
             html.Div([
-                dbc.InputGroup([
-                    dbc.Textarea(
-                        id="query-text",
-                        value=row['TEST_RESULTS_QUERY'],
-                        readOnly=True,
-                        style={"height": "200px", "fontFamily": "monospace"},
-                    ),
-                    # Use the new approach for InputGroup buttons
-                    dbc.Button(
-                        html.I(className="fas fa-copy"),
-                        id="copy-query-button",
-                        color="secondary",
-                        n_clicks=0,
-                        className="input-group-text",  # This is important for styling
-                    ),
-                ]),
-                dcc.Clipboard(
-                    id="copy-query",
-                    target_id="query-text",
-                    title="Copy to clipboard",
+                dbc.Textarea(
+                    id="query-text",
+                    value=row['TEST_RESULTS_QUERY'],
+                    readOnly=True,
+                    style={"height": "200px", "fontFamily": "monospace"},
+                ),
+                dbc.Button(
+                    "Copy to Clipboard",
+                    id="copy-query-button",
+                    color="secondary",
+                    className="mt-2",
+                    n_clicks=0,
                 ),
                 html.Div(id="copy-query-output"),
             ]),
@@ -853,9 +854,32 @@ def close_modal(close_clicks, is_open):
 @callback(
     Output("copy-query-output", "children"),
     Input("copy-query-button", "n_clicks"),
+    State("query-text", "value"),
     prevent_initial_call=True,
 )
-def copy_to_clipboard(n_clicks):
+def copy_to_clipboard(n_clicks, query_text):
     if n_clicks > 0:
-        return html.Div("Copied to clipboard!", style={"color": "green", "margin-top": "5px"})
+        # Return a confirmation message
+        return html.Div([
+            html.Span("Copied to clipboard!", style={"color": "green", "margin-top": "5px"}),
+            # Add a hidden div with JavaScript to copy to clipboard
+            html.Div(id="clipboard-js",
+                     children=[],
+                     style={"display": "none"},
+                     # This will execute when the component is rendered
+                     **{"data-clipboard": query_text})
+        ])
     return dash.no_update
+
+dash.clientside_callback(
+    """
+    function(divProps) {
+        if(divProps && divProps['data-clipboard']) {
+            navigator.clipboard.writeText(divProps['data-clipboard']);
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("clipboard-js", "children"),
+    Input("clipboard-js", "data-clipboard")
+)
