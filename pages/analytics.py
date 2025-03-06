@@ -126,7 +126,6 @@ def get_data_from_db(limit=100):
     conn.close()
     return df
 
-# Add these functions to get the required data for the new tiles
 def get_data_quality_grade():
     conn = get_db_connection()
 
@@ -191,6 +190,61 @@ def get_last_test_run_time():
     """, conn).iloc[0]['last_run']
     conn.close()
     return last_time if last_time else "No data available"
+
+def get_mart_statuses():
+    conn = get_db_connection()
+
+    # Get all failed tests with severity level 1
+    sev1_failures = pd.read_sql_query("""
+        SELECT COUNT(*) as count FROM test_results 
+        WHERE STATUS != 'pass' AND SEVERITY_LEVEL = 1
+    """, conn).iloc[0]['count']
+
+    # Initialize results dictionary
+    mart_statuses = {
+        'SERVICE_CATEGORIES': 'pass',
+        'CCSR': 'pass',
+        'CMS_CHRONIC_CONDITIONS': 'pass',
+        'TUVA_CHRONIC_CONDITIONS': 'pass',
+        'CMS_HCCS': 'pass',
+        'ED_CLASSIFICATION': 'pass',
+        'FINANCIAL_PMPM': 'pass',
+        'QUALITY_MEASURES': 'pass',
+        'READMISSION': 'pass'
+    }
+
+    # If any severity level 1 issues exist, all marts are not usable
+    if sev1_failures > 0:
+        for mart in mart_statuses:
+            mart_statuses[mart] = 'fail'
+        conn.close()
+        return mart_statuses
+
+    # Check severity level 2 issues for each mart
+    for mart in mart_statuses:
+        flag_column = f'FLAG_{mart}'
+
+        # Check severity level 2 issues for this mart
+        sev2_failures = pd.read_sql_query(f"""
+            SELECT COUNT(*) as count FROM test_results 
+            WHERE STATUS != 'pass' AND SEVERITY_LEVEL = 2 AND {flag_column} = 1
+        """, conn).iloc[0]['count']
+
+        if sev2_failures > 0:
+            mart_statuses[mart] = 'fail'
+            continue  # No need to check level 3 if already failed
+
+        # Check severity level 3 issues for this mart
+        sev3_failures = pd.read_sql_query(f"""
+            SELECT COUNT(*) as count FROM test_results 
+            WHERE STATUS != 'pass' AND SEVERITY_LEVEL = 3 AND {flag_column} = 1
+        """, conn).iloc[0]['count']
+
+        if sev3_failures > 0:
+            mart_statuses[mart] = 'warn'
+
+    conn.close()
+    return mart_statuses
 
 
 # Layout with Bootstrap cards/tiles
@@ -263,6 +317,19 @@ layout = html.Div([
                 ])
             ], className="mb-4"),
             width=4
+        ),
+    ]),
+
+    # Mart Status Tiles
+    dbc.Row([
+        dbc.Col(
+            dbc.Card([
+                dbc.CardHeader("Data Mart Usability Status", className="bg-primary text-white"),
+                dbc.CardBody([
+                    html.Div(id='mart-status-display')
+                ])
+            ], className="mb-4"),
+            width=12
         ),
     ]),
 
@@ -398,3 +465,55 @@ def update_last_test_run(n_clicks, upload_output):
         return last_run
     except Exception as e:
         return html.P(f"Error: {str(e)}")
+
+@callback(
+    Output('mart-status-display', 'children'),
+    [Input('refresh-button', 'n_clicks'),
+     Input('output-data-upload', 'children')]
+)
+def update_mart_status(n_clicks, upload_output):
+    try:
+        mart_statuses = get_mart_statuses()
+
+        # Create a grid of cards for mart statuses
+        cards = []
+        for mart, status in mart_statuses.items():
+            # Format the mart name for display
+            display_name = mart.replace('_', ' ').title()
+
+            # Choose icon and color based on status
+            if status == 'fail':
+                icon = html.I(className="fas fa-times-circle", style={'fontSize': '36px'})
+                color = "danger"
+                status_text = "Not Usable"
+            elif status == 'warn':
+                icon = html.I(className="fas fa-exclamation-triangle", style={'fontSize': '36px'})
+                color = "warning"
+                status_text = "Use with Caution"
+            else:  # 'pass'
+                icon = html.I(className="fas fa-check-circle", style={'fontSize': '36px'})
+                color = "success"
+                status_text = "Usable"
+
+            # Create card
+            card = dbc.Col(
+                dbc.Card([
+                    dbc.CardBody([
+                        html.Div(icon, className=f"text-{color} text-center mb-2"),
+                        html.H5(display_name, className="text-center"),
+                        html.P(status_text, className=f"text-{color} text-center")
+                    ])
+                ], className="mb-4"),
+                width=4  # 3 cards per row
+            )
+            cards.append(card)
+
+        # Arrange cards in rows
+        rows = []
+        for i in range(0, len(cards), 3):
+            rows.append(dbc.Row(cards[i:i + 3]))
+
+        return html.Div(rows)
+
+    except Exception as e:
+        return html.P(f"Error determining mart status: {str(e)}")
