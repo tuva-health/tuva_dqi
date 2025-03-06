@@ -2,9 +2,10 @@ import dash
 from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
 
-app = Dash(__name__, use_pages=True, external_stylesheets=[dbc.themes.BOOTSTRAP,
+app = Dash(__name__, use_pages=True
+           , external_stylesheets=[dbc.themes.BOOTSTRAP,
     'https://use.fontawesome.com/releases/v5.15.1/css/all.css'
-])
+], suppress_callback_exceptions=True)
 
 # Create a navbar with the links
 navbar = dbc.NavbarSimple(
