@@ -32,6 +32,8 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+*.db
+DEBUG_INSTRUCTIONS.txt
 *.cover
 *.py,cover
 .idea
