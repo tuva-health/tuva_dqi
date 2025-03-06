@@ -475,13 +475,54 @@ def update_last_test_run(n_clicks, upload_output):
         last_run = get_last_test_run_time()
         if last_run and last_run != "No data available":
             # Format the timestamp for better readability
-            # This assumes the timestamp is in a standard format
-            from datetime import datetime
+            from datetime import datetime, timezone
+            import pytz  # You'll need to install this package if not already installed
+
             try:
+                # Parse the timestamp (assuming it's in UTC)
                 dt = datetime.strptime(last_run, "%Y-%m-%d %H:%M:%S")
-                return dt.strftime("%b %d, %Y at %I:%M %p")
-            except:
-                return last_run
+                dt = dt.replace(tzinfo=timezone.utc)  # Explicitly mark as UTC
+
+                # Convert to Eastern Time
+                eastern = pytz.timezone('America/New_York')
+                dt_eastern = dt.astimezone(eastern)
+
+                # Get current time in UTC for relative time calculation
+                now = datetime.now(timezone.utc)
+                time_diff = now - dt
+
+                # Calculate relative time
+                seconds = time_diff.total_seconds()
+                if seconds < 60:
+                    relative_time = f"{int(seconds)} seconds ago"
+                elif seconds < 3600:
+                    minutes = int(seconds // 60)
+                    relative_time = f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+                elif seconds < 86400:
+                    hours = int(seconds // 3600)
+                    relative_time = f"{hours} hour{'s' if hours != 1 else ''} ago"
+                elif seconds < 2592000:  # 30 days
+                    days = int(seconds // 86400)
+                    relative_time = f"{days} day{'s' if days != 1 else ''} ago"
+                elif seconds < 31536000:  # 365 days
+                    months = int(seconds // 2592000)
+                    relative_time = f"{months} month{'s' if months != 1 else ''} ago"
+                else:
+                    years = int(seconds // 31536000)
+                    relative_time = f"{years} year{'s' if years != 1 else ''} ago"
+
+                # Format the Eastern time
+                # Add ET/EST/EDT label based on whether daylight saving is in effect
+                et_label = "EDT" if dt_eastern.dst() else "EST"
+                formatted_time = dt_eastern.strftime(f"%b %d, %Y at %I:%M %p {et_label}")
+
+                # Return both the formatted time and the relative time
+                return html.Div([
+                    html.Span(formatted_time),
+                    html.Span(f" ({relative_time})", style={'color': 'gray', 'font-style': 'italic'})
+                ])
+            except Exception as e:
+                return f"Error formatting time: {str(e)}"
         return last_run
     except Exception as e:
         return html.P(f"Error: {str(e)}")
