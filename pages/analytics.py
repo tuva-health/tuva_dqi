@@ -1,6 +1,7 @@
 import dash
-from dash import html, dcc, callback, Input, Output, State, dash_table
+from dash import html, dcc, callback, Input, Output, State, dash_table, ctx
 import dash_bootstrap_components as dbc
+import json
 import pandas as pd
 import sqlite3
 import os
@@ -246,6 +247,23 @@ def get_mart_statuses():
     conn.close()
     return mart_statuses
 
+def get_outstanding_errors():
+    conn = get_db_connection()
+    df = pd.read_sql_query("""
+        SELECT 
+            UNIQUE_ID, SEVERITY_LEVEL, TABLE_NAME, TEST_COLUMN_NAME, 
+            TEST_ORIGINAL_NAME, TEST_TYPE, TEST_SUB_TYPE, TEST_DESCRIPTION,
+            TEST_RESULTS_QUERY, RESULT_ROWS,
+            FLAG_SERVICE_CATEGORIES, FLAG_CCSR, FLAG_CMS_CHRONIC_CONDITIONS,
+            FLAG_TUVA_CHRONIC_CONDITIONS, FLAG_CMS_HCCS, FLAG_ED_CLASSIFICATION,
+            FLAG_FINANCIAL_PMPM, FLAG_QUALITY_MEASURES, FLAG_READMISSION
+        FROM test_results 
+        WHERE STATUS != 'pass' AND SEVERITY_LEVEL IS NOT NULL
+        ORDER BY SEVERITY_LEVEL ASC
+    """, conn)
+    conn.close()
+    return df
+
 
 # Layout with Bootstrap cards/tiles
 layout = html.Div([
@@ -333,20 +351,22 @@ layout = html.Div([
         ),
     ]),
 
-    # Third row - Data Preview Tile
-    dbc.Row([
-        dbc.Col(
-            dbc.Card([
-                dbc.CardHeader("Test Results Preview", className="bg-secondary text-white"),
-                dbc.CardBody([
-                    html.P("Preview of test results in the database:"),
-                    html.Button('Refresh Data', id='refresh-button', className='btn btn-primary mb-3'),
-                    html.Div(id='database-preview')
-                ])
-            ]),
-            width=12
+    dbc.Card([
+        dbc.CardHeader("Outstanding Errors", className="bg-danger text-white"),
+        dbc.CardBody([
+            html.P("Tests that have failed or have warnings:"),
+            html.Button('Refresh Data', id='refresh-button', className='btn btn-primary mb-3'),
+            html.Div(id='outstanding-errors-table')
+        ])
+    ], className="mb-4"),
+
+    dbc.Modal([
+        dbc.ModalHeader("Error Details"),
+        dbc.ModalBody(id="error-modal-body"),
+        dbc.ModalFooter(
+            dbc.Button("Close", id="close-error-modal", className="ml-auto")
         ),
-    ]),
+    ], id="error-modal", size="xl"),
 ])
 
 
@@ -517,3 +537,325 @@ def update_mart_status(n_clicks, upload_output):
 
     except Exception as e:
         return html.P(f"Error determining mart status: {str(e)}")
+
+
+@callback(
+    Output('outstanding-errors-table', 'children'),
+    [Input('refresh-button', 'n_clicks'),
+     Input('output-data-upload', 'children')]
+)
+def update_outstanding_errors(n_clicks, upload_output):
+    try:
+        df = get_outstanding_errors()
+        if df.empty:
+            return html.P("No outstanding errors found.")
+
+        # Store the full dataframe in a hidden div for later use
+        hidden_data = html.Div(
+            id='hidden-error-data',
+            style={'display': 'none'},
+            children=json.dumps(df.to_dict('records'))
+        )
+
+        # Create a list of rows with buttons
+        rows = []
+        for i, row in df.iterrows():
+            rows.append(
+                dbc.Row([
+                    dbc.Col(str(row['SEVERITY_LEVEL']), width=1, className="align-self-center"),
+                    dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center"),
+                    dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center"),
+                    dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center"),
+                    dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center"),
+                    dbc.Col(row['TEST_SUB_TYPE'] if pd.notna(row['TEST_SUB_TYPE']) else '', width=2,
+                            className="align-self-center"),
+                    dbc.Col(
+                        dbc.Button(
+                            "More Info",
+                            id={"type": "error-info-button", "index": i},
+                            color="info",
+                            size="sm",
+                            className="mr-1"
+                        ),
+                        width=1,
+                        className="align-self-center"
+                    ),
+                ],
+                    className="mb-2 border-bottom pb-2",
+                    style={
+                        "backgroundColor":
+                            "#ffcccc" if row['SEVERITY_LEVEL'] == 1 else
+                            "#ffe6cc" if row['SEVERITY_LEVEL'] == 2 else
+                            "#ffffcc" if row['SEVERITY_LEVEL'] == 3 else
+                            "#e6ffcc" if row['SEVERITY_LEVEL'] == 4 else
+                            "#ccffcc" if row['SEVERITY_LEVEL'] == 5 else
+                            "white"
+                    })
+            )
+
+        # Create a header row
+        header = dbc.Row([
+            dbc.Col(html.Strong("Severity"), width=1),
+            dbc.Col(html.Strong("Table"), width=2),
+            dbc.Col(html.Strong("Column"), width=2),
+            dbc.Col(html.Strong("Test Name"), width=2),
+            dbc.Col(html.Strong("Test Type"), width=2),
+            dbc.Col(html.Strong("Test Sub Type"), width=2),
+            dbc.Col(html.Strong("Actions"), width=1),
+        ], className="mb-2 border-bottom pb-2 font-weight-bold")
+
+        # Combine header and rows
+        table_content = [header] + rows
+
+        # Create a container for the table with pagination
+        table_container = html.Div([
+            hidden_data,
+            html.Div(table_content[:10]),  # Show first 10 rows initially
+            dbc.Pagination(
+                id="error-pagination",
+                max_value=max(1, (len(rows) + 9) // 10),  # Ceiling division to get number of pages
+                first_last=True,
+                previous_next=True,
+                active_page=1
+            ) if len(rows) > 10 else html.Div()
+        ])
+
+        return table_container
+
+    except Exception as e:
+        return html.P(f"Error retrieving data: {str(e)}")
+
+
+# Add a callback for pagination
+@callback(
+    Output('outstanding-errors-table', 'children', allow_duplicate=True),
+    [Input('error-pagination', 'active_page')],
+    [State('hidden-error-data', 'children')],
+    prevent_initial_call=True
+)
+def change_page(page, json_data):
+    if not page or not json_data:
+        return dash.no_update
+
+    try:
+        # Parse the data
+        data = json.loads(json_data)
+        df = pd.DataFrame(data)
+
+        # Create rows for the current page
+        rows = []
+        start_idx = (page - 1) * 10
+        end_idx = min(start_idx + 10, len(df))
+
+        for i in range(start_idx, end_idx):
+            row = df.iloc[i]
+            rows.append(
+                dbc.Row([
+                    dbc.Col(str(row['SEVERITY_LEVEL']), width=1, className="align-self-center"),
+                    dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center"),
+                    dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center"),
+                    dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center"),
+                    dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center"),
+                    dbc.Col(row['TEST_SUB_TYPE'] if pd.notna(row['TEST_SUB_TYPE']) else '', width=2,
+                            className="align-self-center"),
+                    dbc.Col(
+                        dbc.Button(
+                            "More Info",
+                            id={"type": "error-info-button", "index": i},
+                            color="info",
+                            size="sm",
+                            className="mr-1"
+                        ),
+                        width=1,
+                        className="align-self-center"
+                    ),
+                ],
+                    className="mb-2 border-bottom pb-2",
+                    style={
+                        "backgroundColor":
+                            "#ffcccc" if row['SEVERITY_LEVEL'] == 1 else
+                            "#ffe6cc" if row['SEVERITY_LEVEL'] == 2 else
+                            "#ffffcc" if row['SEVERITY_LEVEL'] == 3 else
+                            "#e6ffcc" if row['SEVERITY_LEVEL'] == 4 else
+                            "#ccffcc" if row['SEVERITY_LEVEL'] == 5 else
+                            "white"
+                    })
+            )
+
+        # Create a header row
+        header = dbc.Row([
+            dbc.Col(html.Strong("Severity"), width=1),
+            dbc.Col(html.Strong("Table"), width=2),
+            dbc.Col(html.Strong("Column"), width=2),
+            dbc.Col(html.Strong("Test Name"), width=2),
+            dbc.Col(html.Strong("Test Type"), width=2),
+            dbc.Col(html.Strong("Test Sub Type"), width=2),
+            dbc.Col(html.Strong("Actions"), width=1),
+        ], className="mb-2 border-bottom pb-2 font-weight-bold")
+
+        # Combine header and rows
+        table_content = [header] + rows
+
+        # Create a container for the table with pagination
+        table_container = html.Div([
+            html.Div(id='hidden-error-data', style={'display': 'none'}, children=json_data),
+            html.Div(table_content),
+            dbc.Pagination(
+                id="error-pagination",
+                max_value=max(1, (len(df) + 9) // 10),  # Ceiling division to get number of pages
+                first_last=True,
+                previous_next=True,
+                active_page=page
+            ) if len(df) > 10 else html.Div()
+        ])
+
+        return table_container
+
+    except Exception as e:
+        return html.P(f"Error changing page: {str(e)}")
+
+
+# Callback for the "More Info" buttons
+@callback(
+    [Output("error-modal", "is_open"),
+     Output("error-modal-body", "children")],
+    [Input({"type": "error-info-button", "index": dash.ALL}, "n_clicks")],
+    [State("hidden-error-data", "children"),
+     State("error-modal", "is_open")],
+    prevent_initial_call=True
+)
+def toggle_error_modal(btn_clicks, json_data, is_open):
+    # Check if any button was clicked
+    if not any(btn_clicks) or not ctx.triggered:
+        return is_open, dash.no_update
+
+    # Find which button was clicked
+    triggered_id = ctx.triggered_id
+    if triggered_id and 'index' in triggered_id:
+        clicked_index = triggered_id['index']
+
+        # Get the data for the clicked row
+        data = json.loads(json_data)
+        row = data[clicked_index]
+
+        # Create the modal content
+        modal_content = [
+            html.H5(f"Error Details for {row['TABLE_NAME']}"),
+            html.Hr(),
+
+            dbc.Row([
+                dbc.Col([
+                    html.P([html.Strong("Unique ID: "), row['UNIQUE_ID']]),
+                    html.P([html.Strong("Severity Level: "), str(row['SEVERITY_LEVEL'])]),
+                    html.P([html.Strong("Table: "), row['TABLE_NAME']]),
+                    html.P([html.Strong("Column: "), row['TEST_COLUMN_NAME']]),
+                    html.P([html.Strong("Test Name: "), row['TEST_ORIGINAL_NAME']]),
+                    html.P([html.Strong("Test Type: "), row['TEST_TYPE']]),
+                    html.P([html.Strong("Test Sub Type: "), row['TEST_SUB_TYPE'] if pd.notna(row['TEST_SUB_TYPE']) else '']),
+                ], width=12),
+            ]),
+
+            html.Hr(),
+            html.H6("Test Description:"),
+            html.P(row['TEST_DESCRIPTION']),
+
+            html.Hr(),
+            html.H6("Test Results Query:"),
+            html.Div([
+                dbc.InputGroup([
+                    dbc.Textarea(
+                        id="query-text",
+                        value=row['TEST_RESULTS_QUERY'],
+                        readOnly=True,
+                        style={"height": "200px", "fontFamily": "monospace"},
+                    ),
+                    # Use the new approach for InputGroup buttons
+                    dbc.Button(
+                        html.I(className="fas fa-copy"),
+                        id="copy-query-button",
+                        color="secondary",
+                        n_clicks=0,
+                        className="input-group-text",  # This is important for styling
+                    ),
+                ]),
+                dcc.Clipboard(
+                    id="copy-query",
+                    target_id="query-text",
+                    title="Copy to clipboard",
+                ),
+                html.Div(id="copy-query-output"),
+            ]),
+
+            html.Hr(),
+            html.H6("Result Rows:"),
+            html.P(row['RESULT_ROWS'] if pd.notna(row['RESULT_ROWS']) else "No result rows available"),
+
+            html.Hr(),
+            html.H6("Affected Data Marts:"),
+            dbc.Row([
+                # Create icons for each affected data mart
+                dbc.Col(html.Div([
+                    html.I(className="fas fa-database text-danger mr-2" if row['FLAG_SERVICE_CATEGORIES'] == 1 else "fas fa-database text-muted mr-2"),
+                    "Service Categories"
+                ]), width=4),
+                dbc.Col(html.Div([
+                    html.I(className="fas fa-database text-danger mr-2" if row['FLAG_CCSR'] == 1 else "fas fa-database text-muted mr-2"),
+                    "CCSR"
+                ]), width=4),
+                dbc.Col(html.Div([
+                    html.I(className="fas fa-database text-danger mr-2" if row['FLAG_CMS_CHRONIC_CONDITIONS'] == 1 else "fas fa-database text-muted mr-2"),
+                    "CMS Chronic Conditions"
+                ]), width=4),
+                dbc.Col(html.Div([
+                    html.I(className="fas fa-database text-danger mr-2" if row['FLAG_TUVA_CHRONIC_CONDITIONS'] == 1 else "fas fa-database text-muted mr-2"),
+                    "TUVA Chronic Conditions"
+                ]), width=4),
+                dbc.Col(html.Div([
+                    html.I(className="fas fa-database text-danger mr-2" if row['FLAG_CMS_HCCS'] == 1 else "fas fa-database text-muted mr-2"),
+                    "CMS HCCs"
+                ]), width=4),
+                dbc.Col(html.Div([
+                    html.I(className="fas fa-database text-danger mr-2" if row['FLAG_ED_CLASSIFICATION'] == 1 else "fas fa-database text-muted mr-2"),
+                    "ED Classification"
+                ]), width=4),
+                dbc.Col(html.Div([
+                    html.I(className="fas fa-database text-danger mr-2" if row['FLAG_FINANCIAL_PMPM'] == 1 else "fas fa-database text-muted mr-2"),
+                    "Financial PMPM"
+                ]), width=4),
+                dbc.Col(html.Div([
+                    html.I(className="fas fa-database text-danger mr-2" if row['FLAG_QUALITY_MEASURES'] == 1 else "fas fa-database text-muted mr-2"),
+                    "Quality Measures"
+                ]), width=4),
+                dbc.Col(html.Div([
+                    html.I(className="fas fa-database text-danger mr-2" if row['FLAG_READMISSION'] == 1 else "fas fa-database text-muted mr-2"),
+                    "Readmission"
+                ]), width=4),
+            ]),
+        ]
+
+        return True, modal_content
+
+    return is_open, dash.no_update
+
+@callback(
+    Output("error-modal", "is_open", allow_duplicate=True),
+    Input("close-error-modal", "n_clicks"),
+    State("error-modal", "is_open"),
+    prevent_initial_call=True
+)
+def close_modal(close_clicks, is_open):
+    if close_clicks:
+        return False
+    return is_open
+
+
+# Copy button feedback
+@callback(
+    Output("copy-query-output", "children"),
+    Input("copy-query-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+def copy_to_clipboard(n_clicks):
+    if n_clicks > 0:
+        return html.Div("Copied to clipboard!", style={"color": "green", "margin-top": "5px"})
+    return dash.no_update
