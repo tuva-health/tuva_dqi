@@ -452,7 +452,7 @@ def create_test_modal_content(row):
 
 # Layout with Bootstrap cards/tiles
 layout = html.Div([
-    html.H1('Test Results Dashboard', className='mb-4'),
+    html.H1('Data Quality Results Dashboard', className='mb-4'),
 
     # First row of tiles
     dbc.Row([
