@@ -333,3 +333,43 @@ h1, h2, h3, h4, h5, h6 {
 .upload-link:hover {
   color: #3a93c8;
 }
+
+/* Table cell word wrapping */
+.table-cell {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  white-space: normal;
+  padding: 8px;
+}
+
+/* Passing test row styling */
+.passing-test-row {
+  background-color: rgba(248, 249, 250, 0.7) !important;
+  border-left-width: 5px;
+  border-left-style: solid;
+}
+
+.passing-severity-1 {
+  border-left-color: #dc3545;
+}
+
+.passing-severity-2 {
+  border-left-color: #fd7e14;
+}
+
+.passing-severity-3 {
+  border-left-color: #ffc107;
+}
+
+.passing-severity-4 {
+  border-left-color: #28a745;
+}
+
+.passing-severity-5 {
+  border-left-color: #20c997;
+}
+
+.passing-severity-0 {
+  border-left-color: #6c757d;
+}
