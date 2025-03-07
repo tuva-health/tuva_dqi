@@ -9,7 +9,7 @@ import io
 import base64
 
 # Register the page
-dash.register_page(__name__)
+dash.register_page(__name__, path='/analytics', name='DQI Dashboard')
 
 
 # Create a SQLite database connection
