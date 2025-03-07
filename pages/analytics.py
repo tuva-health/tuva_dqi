@@ -7,6 +7,7 @@ import sqlite3
 import os
 import io
 import base64
+import traceback
 
 # Register the page
 dash.register_page(__name__, path='/analytics', name='DQI Dashboard')
@@ -279,7 +280,7 @@ def get_outstanding_errors():
         SELECT 
             UNIQUE_ID, SEVERITY_LEVEL, DATABASE_NAME, TABLE_NAME, TEST_COLUMN_NAME, 
             TEST_ORIGINAL_NAME, TEST_TYPE, TEST_SUB_TYPE, TEST_DESCRIPTION,
-            TEST_RESULTS_QUERY, RESULT_ROWS,
+            TEST_RESULTS_QUERY, RESULT_ROWS, STATUS,
             FLAG_SERVICE_CATEGORIES, FLAG_CCSR, FLAG_CMS_CHRONIC_CONDITIONS,
             FLAG_TUVA_CHRONIC_CONDITIONS, FLAG_CMS_HCCS, FLAG_ED_CLASSIFICATION,
             FLAG_FINANCIAL_PMPM, FLAG_QUALITY_MEASURES, FLAG_READMISSION
@@ -310,15 +311,36 @@ def create_test_table(df, table_type):
 
         severity_level = int(row['SEVERITY_LEVEL']) if pd.notna(row['SEVERITY_LEVEL']) else 0
 
+        # Different styling for passing vs failing tests
+        if table_type == "passing":
+            # For passing tests, use a left border with severity color
+            row_style = {
+                "className": f"mb-2 border-bottom pb-2 passing-test-row passing-severity-{severity_level}"
+            }
+        else:
+            # For failing tests, use the background color approach
+            row_style = {
+                "className": "mb-2 border-bottom pb-2",
+                "style": {
+                    "backgroundColor":
+                        "#ffcccc" if severity_level == 1 else
+                        "#ffe6cc" if severity_level == 2 else
+                        "#ffffcc" if severity_level == 3 else
+                        "#e6ffcc" if severity_level == 4 else
+                        "#ccffcc" if severity_level == 5 else
+                        "white"
+                }
+            }
+
         rows.append(
             dbc.Row([
-                dbc.Col(str(severity_level), width=1, className="align-self-center"),
-                dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center"),
-                dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center"),
-                dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center"),
-                dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center"),
+                dbc.Col(str(severity_level), width=1, className="align-self-center table-cell"),
+                dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center table-cell"),
+                dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center table-cell"),
+                dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center table-cell"),
+                dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center table-cell"),
                 dbc.Col(row['TEST_SUB_TYPE'] if pd.notna(row['TEST_SUB_TYPE']) else '', width=2,
-                        className="align-self-center"),
+                        className="align-self-center table-cell"),
                 dbc.Col(
                     dbc.Button(
                         "More Info",
@@ -331,27 +353,19 @@ def create_test_table(df, table_type):
                     className="d-flex align-items-center"
                 ),
             ],
-                className="mb-2 border-bottom pb-2",
-                style={
-                    "backgroundColor":
-                        "#ffcccc" if severity_level == 1 else
-                        "#ffe6cc" if severity_level == 2 else
-                        "#ffffcc" if severity_level == 3 else
-                        "#e6ffcc" if severity_level == 4 else
-                        "#ccffcc" if severity_level == 5 else
-                        "white"
-                })
+                **row_style
+            )
         )
 
     # Create a header row
     header = dbc.Row([
-        dbc.Col(html.Strong("Severity"), width=1),
-        dbc.Col(html.Strong("Table"), width=2),
-        dbc.Col(html.Strong("Column"), width=2),
-        dbc.Col(html.Strong("Test Name"), width=2),
-        dbc.Col(html.Strong("Test Type"), width=2),
-        dbc.Col(html.Strong("Test Sub Type"), width=2),
-        dbc.Col(html.Strong("Actions"), width=1),
+        dbc.Col(html.Strong("Severity"), width=1, className="table-cell"),
+        dbc.Col(html.Strong("Table"), width=2, className="table-cell"),
+        dbc.Col(html.Strong("Column"), width=2, className="table-cell"),
+        dbc.Col(html.Strong("Test Name"), width=2, className="table-cell"),
+        dbc.Col(html.Strong("Test Type"), width=2, className="table-cell"),
+        dbc.Col(html.Strong("Test Sub Type"), width=2, className="table-cell"),
+        dbc.Col(html.Strong("Actions"), width=1, className="table-cell"),
     ], className="mb-2 border-bottom pb-2 font-weight-bold")
 
     # Combine header and rows
@@ -397,7 +411,8 @@ def create_test_modal_content(row):
                 html.P([html.Strong("Test Type: "), row['TEST_TYPE']]),
                 html.P([html.Strong("Test Sub Type: "),
                         row['TEST_SUB_TYPE'] if pd.notna(row['TEST_SUB_TYPE']) else '']),
-                html.P([html.Strong("Status: "), row['STATUS']]),
+                # Only add Status if it exists in the row
+                html.P([html.Strong("Status: "), row['STATUS']]) if 'STATUS' in row else None,
             ], width=12),
         ]),
 
@@ -428,6 +443,9 @@ def create_test_modal_content(row):
         html.H6("Result Rows:"),
         html.P(row['RESULT_ROWS'] if pd.notna(row['RESULT_ROWS']) else "No result rows available"),
     ]
+
+    # Filter out any None values from the modal content
+    modal_content = [item for item in modal_content if item is not None]
 
     return modal_content
 
@@ -797,13 +815,13 @@ def update_outstanding_errors(n_clicks, upload_output):
         for i, row in df.iterrows():
             rows.append(
                 dbc.Row([
-                    dbc.Col(str(int(row['SEVERITY_LEVEL'])), width=1, className="align-self-center"),  # Convert to int
-                    dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center"),
+                    dbc.Col(str(int(row['SEVERITY_LEVEL'])), width=1, className="align-self-center table-cell"),  # Convert to int
+                    dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center table-cell"),
                     dbc.Col(row['TEST_SUB_TYPE'] if pd.notna(row['TEST_SUB_TYPE']) else '', width=2,
-                            className="align-self-center"),
+                            className="align-self-center table-cell"),
                     dbc.Col(
                         dbc.Button(
                             "More Info",
@@ -830,13 +848,13 @@ def update_outstanding_errors(n_clicks, upload_output):
 
         # Create a header row
         header = dbc.Row([
-            dbc.Col(html.Strong("Severity"), width=1),
-            dbc.Col(html.Strong("Table"), width=2),
-            dbc.Col(html.Strong("Column"), width=2),
-            dbc.Col(html.Strong("Test Name"), width=2),
-            dbc.Col(html.Strong("Test Type"), width=2),
-            dbc.Col(html.Strong("Test Sub Type"), width=2),
-            dbc.Col(html.Strong("Actions"), width=1),
+            dbc.Col(html.Strong("Severity"), width=1, className="table-cell"),
+            dbc.Col(html.Strong("Table"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Column"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Name"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Type"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Sub Type"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Actions"), width=1, className="table-cell"),
         ], className="mb-2 border-bottom pb-2 font-weight-bold")
 
         # Combine header and rows
@@ -886,23 +904,23 @@ def change_page(page, json_data):
             row = df.iloc[i]
             rows.append(
                 dbc.Row([
-                    dbc.Col(str(row['SEVERITY_LEVEL']), width=1, className="align-self-center"),
-                    dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center"),
+                    dbc.Col(str(row['SEVERITY_LEVEL']), width=1, className="align-self-center table-cell"),
+                    dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center table-cell"),
                     dbc.Col(row['TEST_SUB_TYPE'] if pd.notna(row['TEST_SUB_TYPE']) else '', width=2,
-                            className="align-self-center"),
+                            className="align-self-center table-cell"),
                     dbc.Col(
                         dbc.Button(
                             "More Info",
                             id={"type": "error-info-button", "index": i},
                             color="info",
                             size="sm",
-                            className="mr-1"
+                            className="my-1"
                         ),
                         width=1,
-                        className="align-self-center"
+                        className="d-flex align-items-center"
                     ),
                 ],
                     className="mb-2 border-bottom pb-2",
@@ -919,13 +937,13 @@ def change_page(page, json_data):
 
         # Create a header row
         header = dbc.Row([
-            dbc.Col(html.Strong("Severity"), width=1),
-            dbc.Col(html.Strong("Table"), width=2),
-            dbc.Col(html.Strong("Column"), width=2),
-            dbc.Col(html.Strong("Test Name"), width=2),
-            dbc.Col(html.Strong("Test Type"), width=2),
-            dbc.Col(html.Strong("Test Sub Type"), width=2),
-            dbc.Col(html.Strong("Actions"), width=1),
+            dbc.Col(html.Strong("Severity"), width=1, className="table-cell"),
+            dbc.Col(html.Strong("Table"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Column"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Name"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Type"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Sub Type"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Actions"), width=1, className="table-cell"),
         ], className="mb-2 border-bottom pb-2 font-weight-bold")
 
         # Combine header and rows
@@ -969,68 +987,78 @@ def toggle_error_modal(btn_clicks, json_data, is_open):
     if triggered_id and 'index' in triggered_id:
         clicked_index = triggered_id['index']
 
-        # Get the data for the clicked row
-        data = json.loads(json_data)
-        row = data[clicked_index]
+        try:
+            # Get the data for the clicked row
+            data = json.loads(json_data)
+            row = data[clicked_index]
 
-        # Create the modal content using our helper function
-        modal_content = create_test_modal_content(row)
+            # Create the modal content using our helper function
+            modal_content = create_test_modal_content(row)
 
-        # Add the affected data marts section which is specific to the error modal
-        modal_content.extend([
-            html.Hr(),
-            html.H6("Affected Data Marts:"),
-            dbc.Row([
-                # Create icons for each affected data mart
-                dbc.Col(html.Div([
-                    html.I(className="fas fa-database text-danger mr-2" if row[
-                                                                               'FLAG_SERVICE_CATEGORIES'] == 1 else "fas fa-database text-muted mr-2"),
-                    "Service Categories"
-                ]), width=4),
-                dbc.Col(html.Div([
-                    html.I(className="fas fa-database text-danger mr-2" if row[
-                                                                               'FLAG_CCSR'] == 1 else "fas fa-database text-muted mr-2"),
-                    "CCSR"
-                ]), width=4),
-                dbc.Col(html.Div([
-                    html.I(className="fas fa-database text-danger mr-2" if row[
-                                                                               'FLAG_CMS_CHRONIC_CONDITIONS'] == 1 else "fas fa-database text-muted mr-2"),
-                    "CMS Chronic Conditions"
-                ]), width=4),
-                dbc.Col(html.Div([
-                    html.I(className="fas fa-database text-danger mr-2" if row[
-                                                                               'FLAG_TUVA_CHRONIC_CONDITIONS'] == 1 else "fas fa-database text-muted mr-2"),
-                    "TUVA Chronic Conditions"
-                ]), width=4),
-                dbc.Col(html.Div([
-                    html.I(className="fas fa-database text-danger mr-2" if row[
-                                                                               'FLAG_CMS_HCCS'] == 1 else "fas fa-database text-muted mr-2"),
-                    "CMS HCCs"
-                ]), width=4),
-                dbc.Col(html.Div([
-                    html.I(className="fas fa-database text-danger mr-2" if row[
-                                                                               'FLAG_ED_CLASSIFICATION'] == 1 else "fas fa-database text-muted mr-2"),
-                    "ED Classification"
-                ]), width=4),
-                dbc.Col(html.Div([
-                    html.I(className="fas fa-database text-danger mr-2" if row[
-                                                                               'FLAG_FINANCIAL_PMPM'] == 1 else "fas fa-database text-muted mr-2"),
-                    "Financial PMPM"
-                ]), width=4),
-                dbc.Col(html.Div([
-                    html.I(className="fas fa-database text-danger mr-2" if row[
-                                                                               'FLAG_QUALITY_MEASURES'] == 1 else "fas fa-database text-muted mr-2"),
-                    "Quality Measures"
-                ]), width=4),
-                dbc.Col(html.Div([
-                    html.I(className="fas fa-database text-danger mr-2" if row[
-                                                                               'FLAG_READMISSION'] == 1 else "fas fa-database text-muted mr-2"),
-                    "Readmission"
-                ]), width=4),
-            ]),
-        ])
+            # Check if we have the data mart flags before adding that section
+            mart_flags_exist = all(flag in row for flag in [
+                'FLAG_SERVICE_CATEGORIES', 'FLAG_CCSR', 'FLAG_CMS_CHRONIC_CONDITIONS',
+                'FLAG_TUVA_CHRONIC_CONDITIONS', 'FLAG_CMS_HCCS', 'FLAG_ED_CLASSIFICATION',
+                'FLAG_FINANCIAL_PMPM', 'FLAG_QUALITY_MEASURES', 'FLAG_READMISSION'
+            ])
 
-        return True, modal_content
+            # Add the affected data marts section if flags exist
+            if mart_flags_exist:
+                modal_content.extend([
+                    html.Hr(),
+                    html.H6("Affected Data Marts:"),
+                    dbc.Row([
+                        # Create icons for each affected data mart
+                        dbc.Col(html.Div([
+                            html.I(className="fas fa-database text-danger mr-2" if row['FLAG_SERVICE_CATEGORIES'] == 1 else "fas fa-database text-muted mr-2"),
+                            "Service Categories"
+                        ]), width=4),
+                        dbc.Col(html.Div([
+                            html.I(className="fas fa-database text-danger mr-2" if row['FLAG_CCSR'] == 1 else "fas fa-database text-muted mr-2"),
+                            "CCSR"
+                        ]), width=4),
+                        dbc.Col(html.Div([
+                            html.I(className="fas fa-database text-danger mr-2" if row['FLAG_CMS_CHRONIC_CONDITIONS'] == 1 else "fas fa-database text-muted mr-2"),
+                            "CMS Chronic Conditions"
+                        ]), width=4),
+                        dbc.Col(html.Div([
+                            html.I(className="fas fa-database text-danger mr-2" if row['FLAG_TUVA_CHRONIC_CONDITIONS'] == 1 else "fas fa-database text-muted mr-2"),
+                            "TUVA Chronic Conditions"
+                        ]), width=4),
+                        dbc.Col(html.Div([
+                            html.I(className="fas fa-database text-danger mr-2" if row['FLAG_CMS_HCCS'] == 1 else "fas fa-database text-muted mr-2"),
+                            "CMS HCCs"
+                        ]), width=4),
+                        dbc.Col(html.Div([
+                            html.I(className="fas fa-database text-danger mr-2" if row['FLAG_ED_CLASSIFICATION'] == 1 else "fas fa-database text-muted mr-2"),
+                            "ED Classification"
+                        ]), width=4),
+                        dbc.Col(html.Div([
+                            html.I(className="fas fa-database text-danger mr-2" if row['FLAG_FINANCIAL_PMPM'] == 1 else "fas fa-database text-muted mr-2"),
+                            "Financial PMPM"
+                        ]), width=4),
+                        dbc.Col(html.Div([
+                            html.I(className="fas fa-database text-danger mr-2" if row['FLAG_QUALITY_MEASURES'] == 1 else "fas fa-database text-muted mr-2"),
+                            "Quality Measures"
+                        ]), width=4),
+                        dbc.Col(html.Div([
+                            html.I(className="fas fa-database text-danger mr-2" if row['FLAG_READMISSION'] == 1 else "fas fa-database text-muted mr-2"),
+                            "Readmission"
+                        ]), width=4),
+                    ]),
+                ])
+
+            return True, modal_content
+
+        except Exception as e:
+            # Return an error message in the modal if something goes wrong
+            error_content = [
+                html.H5("Error Loading Test Details"),
+                html.Hr(),
+                html.P(f"An error occurred: {str(e)}"),
+                html.Pre(traceback.format_exc())
+            ]
+            return True, error_content
 
     return is_open, dash.no_update
 
@@ -1220,13 +1248,13 @@ def update_failing_pagination(page, json_data):
 
             rows.append(
                 dbc.Row([
-                    dbc.Col(str(severity_level), width=1, className="align-self-center"),
-                    dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center"),
+                    dbc.Col(str(severity_level), width=1, className="align-self-center table-cell"),
+                    dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center table-cell"),
                     dbc.Col(row['TEST_SUB_TYPE'] if pd.notna(row['TEST_SUB_TYPE']) else '', width=2,
-                            className="align-self-center"),
+                            className="align-self-center table-cell"),
                     dbc.Col(
                         dbc.Button(
                             "More Info",
@@ -1253,13 +1281,13 @@ def update_failing_pagination(page, json_data):
 
         # Create a header row
         header = dbc.Row([
-            dbc.Col(html.Strong("Severity"), width=1),
-            dbc.Col(html.Strong("Table"), width=2),
-            dbc.Col(html.Strong("Column"), width=2),
-            dbc.Col(html.Strong("Test Name"), width=2),
-            dbc.Col(html.Strong("Test Type"), width=2),
-            dbc.Col(html.Strong("Test Sub Type"), width=2),
-            dbc.Col(html.Strong("Actions"), width=1),
+            dbc.Col(html.Strong("Severity"), width=1, className="table-cell"),
+            dbc.Col(html.Strong("Table"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Column"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Name"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Type"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Sub Type"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Actions"), width=1, className="table-cell"),
         ], className="mb-2 border-bottom pb-2 font-weight-bold")
 
         # Combine header and rows
@@ -1268,6 +1296,7 @@ def update_failing_pagination(page, json_data):
 
     except Exception as e:
         return html.P(f"Error changing page: {str(e)}")
+
 
 @callback(
     Output('passing-tests-table-content', 'children'),
@@ -1295,13 +1324,13 @@ def update_passing_pagination(page, json_data):
 
             rows.append(
                 dbc.Row([
-                    dbc.Col(str(severity_level), width=1, className="align-self-center"),
-                    dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center"),
-                    dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center"),
+                    dbc.Col(str(severity_level), width=1, className="align-self-center table-cell"),
+                    dbc.Col(row['TABLE_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_COLUMN_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_ORIGINAL_NAME'], width=2, className="align-self-center table-cell"),
+                    dbc.Col(row['TEST_TYPE'], width=2, className="align-self-center table-cell"),
                     dbc.Col(row['TEST_SUB_TYPE'] if pd.notna(row['TEST_SUB_TYPE']) else '', width=2,
-                            className="align-self-center"),
+                            className="align-self-center table-cell"),
                     dbc.Col(
                         dbc.Button(
                             "More Info",
@@ -1314,27 +1343,18 @@ def update_passing_pagination(page, json_data):
                         className="d-flex align-items-center"
                     ),
                 ],
-                    className="mb-2 border-bottom pb-2",
-                    style={
-                        "backgroundColor":
-                            "#ffcccc" if severity_level == 1 else
-                            "#ffe6cc" if severity_level == 2 else
-                            "#ffffcc" if severity_level == 3 else
-                            "#e6ffcc" if severity_level == 4 else
-                            "#ccffcc" if severity_level == 5 else
-                            "white"
-                    })
+                    className=f"mb-2 border-bottom pb-2 passing-test-row passing-severity-{severity_level}")
             )
 
         # Create a header row
         header = dbc.Row([
-            dbc.Col(html.Strong("Severity"), width=1),
-            dbc.Col(html.Strong("Table"), width=2),
-            dbc.Col(html.Strong("Column"), width=2),
-            dbc.Col(html.Strong("Test Name"), width=2),
-            dbc.Col(html.Strong("Test Type"), width=2),
-            dbc.Col(html.Strong("Test Sub Type"), width=2),
-            dbc.Col(html.Strong("Actions"), width=1),
+            dbc.Col(html.Strong("Severity"), width=1, className="table-cell"),
+            dbc.Col(html.Strong("Table"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Column"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Name"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Type"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Sub Type"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Actions"), width=1, className="table-cell"),
         ], className="mb-2 border-bottom pb-2 font-weight-bold")
 
         # Combine header and rows
