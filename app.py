@@ -55,7 +55,7 @@ app.layout = html.Div([
     navbar,
     dbc.Container([
         dash.page_container
-    ], fluid=True, className="page-container"),
+    ], fluid=True, className="page-container px-4"),
 
     # Add a footer
     html.Footer(
