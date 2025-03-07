@@ -231,3 +231,105 @@ h1, h2, h3, h4, h5, h6 {
   max-width: 800px;
   margin: 0 auto 2rem auto;
 }
+
+/* Dashboard container with padding */
+.dashboard-container {
+  padding: 0 2rem;
+}
+
+/* Clickable card styling */
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.clickable-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.clickable-card:hover .mart-icon {
+  transform: scale(1.1);
+}
+
+.clickable-card:hover::after {
+  content: "Click for details";
+  display: block;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--tuva-blue);
+  margin-top: 0.5rem;
+}
+
+/* Upload area styling */
+.upload-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.upload-text {
+  display: inline-block;
+  text-align: center;
+  width: 100%;
+}
+
+.upload-link {
+  color: var(--tuva-blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.upload-link:hover {
+  color: #3a93c8;
+}
+
+.mart-status-card {
+  text-align: center;
+  padding: 1.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mart-status-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.mart-status-card:hover .mart-icon {
+  transform: scale(1.1);
+}
+
+/* Style for the view tests button */
+.mart-status-card .btn-link {
+  color: var(--tuva-blue);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.mart-status-card .btn-link:hover {
+  text-decoration: underline;
+  color: #3a93c8;
+}
+
+/* Upload area styling */
+.upload-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.upload-text {
+  display: inline-block;
+  text-align: center;
+  width: 100%;
+}
+
+.upload-link {
+  color: var(--tuva-blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.upload-link:hover {
+  color: #3a93c8;
+}
