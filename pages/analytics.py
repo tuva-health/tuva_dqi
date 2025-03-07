@@ -293,6 +293,7 @@ layout = html.Div([
                             'textAlign': 'center',
                             'margin': '10px'
                         },
+                        className="upload-area",
                         multiple=False
                     ),
                     html.Div(id='output-data-upload')
@@ -434,18 +435,18 @@ def update_data_quality_grade(n_clicks, upload_output):
     try:
         grade = get_data_quality_grade()
 
-        # Define colors for different grades
-        grade_colors = {
-            'A': 'text-success',
-            'B': 'text-info',
-            'C': 'text-warning',
-            'D': 'text-warning',
-            'F': 'text-danger'
+        # Define classes for different grades
+        grade_classes = {
+            'A': 'grade-a',
+            'B': 'grade-b',
+            'C': 'grade-c',
+            'D': 'grade-d',
+            'F': 'grade-f'
         }
 
-        color_class = grade_colors.get(grade, '')
+        class_name = grade_classes.get(grade, '')
 
-        return html.Span(grade, className=color_class)
+        return html.Span(grade, className=class_name)
     except Exception as e:
         return html.P(f"Error: {str(e)}")
 
@@ -549,15 +550,15 @@ def update_mart_status(n_clicks, upload_output):
 
             # Choose icon and color based on status
             if status == 'fail':
-                icon = html.I(className="fas fa-times-circle", style={'fontSize': '36px'})
+                icon = html.I(className="fas fa-times-circle mart-icon", style={'color': '#dc3545'})
                 color = "danger"
                 status_text = "Not Usable"
             elif status == 'warn':
-                icon = html.I(className="fas fa-exclamation-triangle", style={'fontSize': '36px'})
+                icon = html.I(className="fas fa-exclamation-triangle mart-icon", style={'color': '#ffc107'})
                 color = "warning"
                 status_text = "Use with Caution"
             else:  # 'pass'
-                icon = html.I(className="fas fa-check-circle", style={'fontSize': '36px'})
+                icon = html.I(className="fas fa-check-circle mart-icon", style={'color': '#28a745'})
                 color = "success"
                 status_text = "Usable"
 
@@ -565,19 +566,19 @@ def update_mart_status(n_clicks, upload_output):
             card = dbc.Col(
                 dbc.Card([
                     dbc.CardBody([
-                        html.Div(icon, className=f"text-{color} text-center mb-2"),
+                        html.Div(icon),
                         html.H5(display_name, className="text-center"),
                         html.P(status_text, className=f"text-{color} text-center")
-                    ])
-                ], className="mb-4"),
-                width=4  # 3 cards per row
+                    ], className="mart-status-card")
+                ]),
+                md=4, className="mb-4"
             )
             cards.append(card)
 
         # Arrange cards in rows
         rows = []
         for i in range(0, len(cards), 3):
-            rows.append(dbc.Row(cards[i:i + 3]))
+            rows.append(dbc.Row(cards[i:i + 3], className="mb-3"))
 
         return html.Div(rows)
 
