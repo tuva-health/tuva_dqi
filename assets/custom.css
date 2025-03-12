@@ -1,17 +1,25 @@
-/* TUVA Health Branding Colors */
+/* TUVA Health Branding Colors  */
 :root {
-  --tuva-blue: #4AA4D9;
-  --tuva-yellow: #FFD100;
-  --tuva-dark-blue: #002A41;
+  --tuva-dark-blue: #0a3f5c;
+  --tuva-yellow: #fdcb0a;
+  --tuva-light-blue: #64b0e1;
+  --tuva-blue: #1d7aa9;
+  --tuva-teal: #0fb594;
   --tuva-light-gray: #F5F5F5;
   --tuva-gray: #6C757D;
   --tuva-white: #FFFFFF;
+  --tuva-black: #333333;
+}
+
+/* Override Bootstrap primary color */
+.bg-primary {
+  background-color: var(--tuva-blue) !important;
 }
 
 /* General styling */
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  color: #333333;
+  color: var(--tuva-black);
   line-height: 1.6;
 }
 
@@ -62,6 +70,8 @@ body {
   border-top-left-radius: 8px !important;
   border-top-right-radius: 8px !important;
   font-weight: 600;
+  background-color: var(--tuva-blue) !important;
+  color: var(--tuva-white) !important;
 }
 
 /* Button styling */
@@ -74,8 +84,8 @@ body {
 }
 
 .btn-primary:hover {
-  background-color: #3a93c8 !important;
-  border-color: #3a93c8 !important;
+  background-color: var(--tuva-dark-blue) !important;
+  border-color: var(--tuva-dark-blue) !important;
 }
 
 .btn-secondary {
@@ -103,6 +113,16 @@ body {
 .btn-warning:hover, .btn-demo:hover {
   background-color: #e6bc00 !important;
   border-color: #e6bc00 !important;
+}
+
+.btn-info {
+  background-color: var(--tuva-light-blue) !important;
+  border-color: var(--tuva-light-blue) !important;
+}
+
+.btn-success {
+  background-color: var(--tuva-teal) !important;
+  border-color: var(--tuva-teal) !important;
 }
 
 /* Typography */
@@ -142,7 +162,26 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 8px;
   padding: 20px;
   text-align: center;
-  background-color: rgba(74, 164, 217, 0.05);
+  background-color: rgba(29, 122, 169, 0.05);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.upload-text {
+  display: inline-block;
+  text-align: center;
+  width: 100%;
+}
+
+.upload-link {
+  color: var(--tuva-blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.upload-link:hover {
+  color: var(--tuva-dark-blue);
 }
 
 /* Page container */
@@ -160,19 +199,19 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Data quality grade styling */
 .grade-a {
-  color: #28a745;
+  color: var(--tuva-teal);
   font-size: 3rem;
   font-weight: 700;
 }
 
 .grade-b {
-  color: #17a2b8;
+  color: var(--tuva-light-blue);
   font-size: 3rem;
   font-weight: 700;
 }
 
 .grade-c, .grade-d {
-  color: #ffc107;
+  color: var(--tuva-yellow);
   font-size: 3rem;
   font-weight: 700;
 }
@@ -187,6 +226,16 @@ h1, h2, h3, h4, h5, h6 {
 .mart-status-card {
   text-align: center;
   padding: 1.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mart-status-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.mart-status-card:hover .mart-icon {
+  transform: scale(1.1);
 }
 
 .mart-icon {
@@ -261,44 +310,6 @@ h1, h2, h3, h4, h5, h6 {
   margin-top: 0.5rem;
 }
 
-/* Upload area styling */
-.upload-area {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.upload-text {
-  display: inline-block;
-  text-align: center;
-  width: 100%;
-}
-
-.upload-link {
-  color: var(--tuva-blue);
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.upload-link:hover {
-  color: #3a93c8;
-}
-
-.mart-status-card {
-  text-align: center;
-  padding: 1.5rem;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.mart-status-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-}
-
-.mart-status-card:hover .mart-icon {
-  transform: scale(1.1);
-}
-
 /* Style for the view tests button */
 .mart-status-card .btn-link {
   color: var(--tuva-blue);
@@ -308,30 +319,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .mart-status-card .btn-link:hover {
   text-decoration: underline;
-  color: #3a93c8;
-}
-
-/* Upload area styling */
-.upload-area {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.upload-text {
-  display: inline-block;
-  text-align: center;
-  width: 100%;
-}
-
-.upload-link {
-  color: var(--tuva-blue);
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.upload-link:hover {
-  color: #3a93c8;
+  color: var(--tuva-dark-blue);
 }
 
 /* Table cell word wrapping */
@@ -359,17 +347,84 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .passing-severity-3 {
-  border-left-color: #ffc107;
+  border-left-color: var(--tuva-yellow);
 }
 
 .passing-severity-4 {
-  border-left-color: #28a745;
+  border-left-color: var(--tuva-teal);
 }
 
 .passing-severity-5 {
-  border-left-color: #20c997;
+  border-left-color: var(--tuva-teal);
 }
 
 .passing-severity-0 {
-  border-left-color: #6c757d;
+  border-left-color: var(--tuva-gray);
+}
+
+/* Future-proofing for additional Bootstrap components */
+.text-primary {
+  color: var(--tuva-blue) !important;
+}
+
+.text-secondary {
+  color: var(--tuva-dark-blue) !important;
+}
+
+.text-success {
+  color: var(--tuva-teal) !important;
+}
+
+.text-info {
+  color: var(--tuva-light-blue) !important;
+}
+
+.text-warning {
+  color: var(--tuva-yellow) !important;
+}
+
+.bg-secondary {
+  background-color: var(--tuva-dark-blue) !important;
+}
+
+.bg-success {
+  background-color: var(--tuva-teal) !important;
+}
+
+.bg-info {
+  background-color: var(--tuva-light-blue) !important;
+}
+
+.bg-warning {
+  background-color: var(--tuva-yellow) !important;
+}
+
+/* Links */
+a {
+  color: var(--tuva-blue);
+}
+
+a:hover {
+  color: var(--tuva-dark-blue);
+}
+
+/* Border colors */
+.border-primary {
+  border-color: var(--tuva-blue) !important;
+}
+
+.border-secondary {
+  border-color: var(--tuva-dark-blue) !important;
+}
+
+.border-info {
+  border-color: var(--tuva-light-blue) !important;
+}
+
+.border-warning {
+  border-color: var(--tuva-yellow) !important;
+}
+
+.border-success {
+  border-color: var(--tuva-teal) !important;
 }
