@@ -428,3 +428,162 @@ a:hover {
 .border-success {
   border-color: var(--tuva-teal) !important;
 }
+
+@media print {
+    body {
+        font-size: 12px;
+    }
+
+    .d-print-none {
+        display: none !important;
+    }
+
+    .d-print-block {
+        display: block !important;
+    }
+
+    .container-fluid {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .card {
+        border: 1px solid #ddd;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+    }
+
+    .card-header {
+        background-color: #f8f9fa !important;
+        color: #000 !important;
+        border-bottom: 1px solid #ddd;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        page-break-inside: avoid;
+    }
+
+    th, td {
+        padding: 6px;
+        border: 1px solid #ddd;
+    }
+
+    /* Force background colors to print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Add page breaks before major sections */
+    .page-break-before {
+        page-break-before: always;
+    }
+
+    /* Ensure charts print properly */
+    .js-plotly-plot {
+        page-break-inside: avoid;
+    }
+
+    /* Grade styling */
+    .grade-a, .grade-b, .grade-c, .grade-d, .grade-f {
+        color: inherit !important;
+    }
+}
+
+/* Report specific styles */
+.report-title {
+    font-weight: 700;
+}
+
+.mart-status-table th,
+.quality-dimension-table th,
+.critical-issues-table th,
+.all-tests-table th {
+    background-color: #f8f9fa;
+}
+
+/* Table styling */
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Add page break classes */
+@media print {
+    .page-break-before {
+        page-break-before: always;
+    }
+
+    .page-break-after {
+        page-break-after: always;
+    }
+
+    /* Make sure each major section starts on a new page */
+    #report-quality-dimensions,
+    #report-critical-issues,
+    #report-all-tests,
+    #report-visualizations {
+        page-break-before: always;
+    }
+}
+@media print {
+    /* Ensure page breaks don't happen in the middle of tables */
+    table {
+        page-break-inside: avoid;
+    }
+
+    /* Make sure text is black in print for better contrast */
+    body {
+        color: black !important;
+    }
+
+    /* Ensure badges are visible in print */
+    .badge {
+        border: 1px solid #000 !important;
+    }
+
+    /* Adjust card margins for print */
+    .card {
+        margin-bottom: 30px !important;
+    }
+
+    /* Remove hover effects in print */
+    .card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Ensure report sections have proper spacing */
+    #report-card-container .card {
+        margin-bottom: 40px !important;
+    }
+}
+
+/* Report card specific styling */
+#report-card-container .card {
+    transition: none;
+}
+
+#report-card-container .card:hover {
+    transform: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+@media print {
+    .js-plotly-plot {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        max-width: 100%;
+        max-height: 500px;
+    }
+
+    /* Ensure chart titles don't get separated from charts */
+    h5 + .js-plotly-plot {
+        page-break-before: avoid;
+    }
+}
+
+
