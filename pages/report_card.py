@@ -427,6 +427,7 @@ def generate_report(n_clicks, container_id):
         critical_issues_content = html.P("No critical issues found.")
 
     # Generate All Tests section
+    # Generate All Tests section
     all_tests = get_all_tests()
 
     if not all_tests.empty:
@@ -437,21 +438,20 @@ def generate_report(n_clicks, container_id):
             html.Th("Table", className="text-start"),
             html.Th("Column", className="text-start"),
             html.Th("Test", className="text-start"),
-            html.Th("Type", className="text-start"),
-            html.Th("Dimension", className="text-start")
+            html.Th("Test Category", className="text-start")  # Changed from Type and Dimension to Test Category
         ]))
 
         all_tests_table_rows = []
         for _, row in all_tests.iterrows():
-
+            # Direct approach to handle severity level
             try:
-                if pd.isna(row['SEVERITY_LEVEL']):
-                    severity_level = 0
-                else:
-                    # Try to convert to float first, then to int to handle both string and numeric formats
+                if isinstance(row['SEVERITY_LEVEL'], (int, float)):
+                    severity_level = int(row['SEVERITY_LEVEL'])
+                elif isinstance(row['SEVERITY_LEVEL'], str) and row['SEVERITY_LEVEL'].strip():
                     severity_level = int(float(row['SEVERITY_LEVEL']))
-            except (ValueError, TypeError):
-                # If conversion fails, set to 0
+                else:
+                    severity_level = 0
+            except Exception:
                 severity_level = 0
 
             # Combine test name and description
@@ -490,11 +490,10 @@ def generate_report(n_clicks, container_id):
                 html.Td(row['TABLE_NAME'], className="text-start"),
                 html.Td(row['TEST_COLUMN_NAME'], className="text-start"),
                 html.Td(combined_test_info, className="text-start"),  # Use the combined test info here
-                html.Td(row['TEST_TYPE'], className="text-start"),
                 html.Td(
-                    row['QUALITY_DIMENSION'].title() if pd.notna(row['QUALITY_DIMENSION']) else "",
+                    row['TEST_CATEGORY'] if pd.notna(row['TEST_CATEGORY']) else "",
                     className="text-start"
-                )
+                )  # Changed to TEST_CATEGORY
             ]))
 
         all_tests_table = dbc.Table(
