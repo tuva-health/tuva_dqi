@@ -561,18 +561,17 @@ layout = html.Div([
         ),
     ]),
     # Test type summary statistics
-    dbc.Row([
-            dbc.Col(
-                dbc.Card([
-                    dbc.CardHeader("Test Categories - Passing Rates", className="bg-primary text-white"),
-                    dbc.CardBody([
-                        html.Div(id='test-category-tiles')
-                    ])
-                ], className="mb-4"),
-                width=12
-            ),
-        ]),
-
+    # dbc.Row([
+    #         dbc.Col(
+    #             dbc.Card([
+    #                 dbc.CardHeader("Test Categories - Passing Rates", className="bg-primary text-white"),
+    #                 dbc.CardBody([
+    #                     html.Div(id='test-category-tiles')
+    #                 ])
+    #             ], className="mb-4"),
+    #             width=12
+    #         ),
+    #     ]),
 
     dbc.Card([
         dbc.CardHeader("Outstanding Errors", className="bg-danger text-white"),
@@ -1402,63 +1401,63 @@ def update_passing_pagination(page, json_data):
         return html.P(f"Error changing page: {str(e)}")
 
 
-@callback(
-    Output('test-category-tiles', 'children'),
-    [Input('refresh-button', 'n_clicks'),
-     Input('output-data-upload', 'children')]
-)
-def update_test_category_tiles(n_clicks, upload_output):
-    try:
-        categories_df = get_test_category_stats()
-
-        if categories_df.empty:
-            return html.P("No test category data available.")
-
-        # Create tiles for each test category
-        category_tiles = []
-
-        for _, row in categories_df.iterrows():
-            category = row['TEST_CATEGORY']
-            passing_pct = row['passing_percentage']
-            total_tests = row['total_tests']
-            passing_tests = row['passing_tests']
-
-            # Determine color based on passing percentage
-            if passing_pct >= 90:
-                bar_color = "success"
-            elif passing_pct >= 75:
-                bar_color = "info"
-            elif passing_pct >= 50:
-                bar_color = "warning"
-            else:
-                bar_color = "danger"
-
-            # Create a card for each category
-            category_tile = dbc.Col(
-                dbc.Card([
-                    dbc.CardBody([
-                        html.H5(category, className="card-title"),
-                        html.P(f"{passing_tests} of {total_tests} tests passing", className="card-text"),
-                        dbc.Progress(
-                            value=passing_pct,
-                            label=f"{passing_pct}%",
-                            color=bar_color,
-                            striped=True,
-                            className="mb-2"
-                        ),
-                    ])
-                ], className="h-100"),
-                md=4, className="mb-3"
-            )
-
-            category_tiles.append(category_tile)
-
-        # Arrange tiles in rows
-        rows = []
-        for i in range(0, len(category_tiles), 3):
-            rows.append(dbc.Row(category_tiles[i:i + 3], className="mb-2"))
-
-        return html.Div(rows)
-
-    except Exception as e:
-        return html.P(f"Error retrieving test category data: {str(e)}")
+# @callback(
+#     Output('test-category-tiles', 'children'),
+#     [Input('refresh-button', 'n_clicks'),
+#      Input('output-data-upload', 'children')]
+# )
+# def update_test_category_tiles(n_clicks, upload_output):
+#     try:
+#         categories_df = get_test_category_stats()
+#
+#         if categories_df.empty:
+#             return html.P("No test category data available.")
+#
+#         # Create tiles for each test category
+#         category_tiles = []
+#
+#         for _, row in categories_df.iterrows():
+#             category = row['TEST_CATEGORY']
+#             passing_pct = row['passing_percentage']
+#             total_tests = row['total_tests']
+#             passing_tests = row['passing_tests']
+#
+#             # Determine color based on passing percentage
+#             if passing_pct >= 90:
+#                 bar_color = "success"
+#             elif passing_pct >= 75:
+#                 bar_color = "info"
+#             elif passing_pct >= 50:
+#                 bar_color = "warning"
+#             else:
+#                 bar_color = "danger"
+#
+#             # Create a card for each category
+#             category_tile = dbc.Col(
+#                 dbc.Card([
+#                     dbc.CardBody([
+#                         html.H5(category, className="card-title"),
+#                         html.P(f"{passing_tests} of {total_tests} tests passing", className="card-text"),
+#                         dbc.Progress(
+#                             value=passing_pct,
+#                             label=f"{passing_pct}%",
+#                             color=bar_color,
+#                             striped=True,
+#                             className="mb-2"
+#                         ),
+#                     ])
+#                 ], className="h-100"),
+#                 md=4, className="mb-3"
+#             )
+#
+#             category_tiles.append(category_tile)
+#
+#         # Arrange tiles in rows
+#         rows = []
+#         for i in range(0, len(category_tiles), 3):
+#             rows.append(dbc.Row(category_tiles[i:i + 3], className="mb-2"))
+#
+#         return html.Div(rows)
+#
+#     except Exception as e:
+#         return html.P(f"Error retrieving test category data: {str(e)}")
