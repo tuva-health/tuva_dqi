@@ -38,13 +38,6 @@ navbar = dbc.Navbar(
                 id="navbar-collapse",
                 navbar=True,
             ),
-            # Add a demo request button on the right
-            dbc.Button(
-                "Request a Demo",
-                color="warning",
-                className="ms-3 btn-demo",
-                href="#",
-            ),
         ]
     ),
     color="light",
