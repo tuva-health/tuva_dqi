@@ -1,5 +1,5 @@
 import dash
-from dash import html, dcc, callback, Input, Output, State, dash_table, ctx
+from dash import html, dcc, callback, Input, Output, State, dash_table, ctx, ALL
 import dash_bootstrap_components as dbc
 import json
 import pandas as pd
@@ -122,6 +122,338 @@ def get_test_category_stats():
                                                categories_df['total_tests'] * 100).round(1)
 
     return categories_df
+
+
+def parse_chart_data_contents(contents, filename):
+    content_type, content_string = contents.split(',')
+    decoded = base64.b64decode(content_string)
+
+    try:
+        if 'csv' in filename:
+            # Read the CSV file into a pandas DataFrame
+            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+
+            # Check if this is a chart data file or test results file
+            if 'DATA_QUALITY_CATEGORY' in df.columns and 'GRAPH_NAME' in df.columns:
+                # This is a chart data file
+                conn = get_db_connection()
+                # Create table if it doesn't exist
+                conn.execute('''
+                CREATE TABLE IF NOT EXISTS chart_data (
+                    DATA_QUALITY_CATEGORY TEXT,
+                    GRAPH_NAME TEXT,
+                    LEVEL_OF_DETAIL TEXT,
+                    Y_AXIS_DESCRIPTION TEXT,
+                    X_AXIS_DESCRIPTION TEXT,
+                    FILTER_DESCRIPTION TEXT,
+                    SUM_DESCRIPTION TEXT,
+                    Y_AXIS TEXT,
+                    X_AXIS TEXT,
+                    CHART_FILTER TEXT,
+                    VALUE REAL
+                )
+                ''')
+                # Use pandas to_sql with 'replace' to overwrite existing data
+                df.to_sql('chart_data', conn, if_exists='replace', index=False)
+                conn.close()
+
+                return html.Div([
+                    html.H5(f'Uploaded Chart Data: {filename}'),
+                    html.Hr(),
+                    html.P(f'{len(df)} data points imported successfully to database.'),
+                    html.P(f'Detected {df["GRAPH_NAME"].nunique()} unique charts.'),
+                    dash_table.DataTable(
+                        data=df.head(10).to_dict('records'),
+                        columns=[{'name': i, 'id': i} for i in df.columns],
+                        page_size=10,
+                        style_table={'overflowX': 'auto'},
+                        style_cell={
+                            'overflow': 'hidden',
+                            'textOverflow': 'ellipsis',
+                            'maxWidth': 0,
+                        }
+                    )
+                ])
+            elif 'UNIQUE_ID' in df.columns and 'TEST_NAME' in df.columns:
+                # This is a test results file
+                conn = get_db_connection()
+                # Use pandas to_sql with 'replace' to overwrite existing data
+                df.to_sql('test_results', conn, if_exists='replace', index=False)
+                conn.close()
+
+                return html.Div([
+                    html.H5(f'Uploaded Test Results: {filename}'),
+                    html.Hr(),
+                    html.P(f'{len(df)} test results imported successfully to database.'),
+                    dash_table.DataTable(
+                        data=df.head(10).to_dict('records'),
+                        columns=[{'name': i, 'id': i} for i in df.columns],
+                        page_size=10,
+                        style_table={'overflowX': 'auto'},
+                        style_cell={
+                            'overflow': 'hidden',
+                            'textOverflow': 'ellipsis',
+                            'maxWidth': 0,
+                        }
+                    )
+                ])
+            else:
+                return html.Div([
+                    html.H5(f'Uploaded: {filename}'),
+                    html.Hr(),
+                    html.P('Unrecognized CSV format. Please upload either a test results file or chart data file.')
+                ])
+        else:
+            return html.Div([
+                html.H5(f'Uploaded: {filename}'),
+                html.Hr(),
+                html.P('Only CSV files are supported.')
+            ])
+    except Exception as e:
+        return html.Div([
+            html.H5(f'Error processing {filename}'),
+            html.Hr(),
+            html.P(f'Error: {str(e)}'),
+            html.Pre(traceback.format_exc())
+        ])
+
+
+def get_available_charts():
+    """Get a list of available charts from the database"""
+    try:
+        conn = get_db_connection()
+        df = pd.read_sql_query("""
+            SELECT DISTINCT 
+                DATA_QUALITY_CATEGORY, 
+                GRAPH_NAME,
+                Y_AXIS_DESCRIPTION,
+                X_AXIS_DESCRIPTION,
+                FILTER_DESCRIPTION,
+                SUM_DESCRIPTION,
+                LEVEL_OF_DETAIL
+            FROM chart_data
+            ORDER BY DATA_QUALITY_CATEGORY, GRAPH_NAME
+        """, conn)
+        conn.close()
+        return df
+    except Exception as e:
+        print(f"Error getting available charts: {str(e)}")
+        return pd.DataFrame()
+
+
+def get_chart_data(graph_name, chart_filter=None):
+    """Get data for a specific chart"""
+    try:
+        conn = get_db_connection()
+        query = f"""
+            SELECT * FROM chart_data
+            WHERE GRAPH_NAME = '{graph_name}'
+        """
+
+        if chart_filter:
+            query += f" AND CHART_FILTER = '{chart_filter}'"
+
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        return df
+    except Exception as e:
+        print(f"Error getting chart data: {str(e)}")
+        return pd.DataFrame()
+
+
+def get_chart_filter_values(graph_name):
+    """Get unique filter values for a chart"""
+    try:
+        conn = get_db_connection()
+        query = f"""
+            SELECT DISTINCT CHART_FILTER 
+            FROM chart_data
+            WHERE GRAPH_NAME = '{graph_name}'
+            AND CHART_FILTER IS NOT NULL
+            AND CHART_FILTER != ''
+            ORDER BY CHART_FILTER
+        """
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        return df['CHART_FILTER'].tolist()
+    except Exception as e:
+        print(f"Error getting chart filter values: {str(e)}")
+        return []
+
+
+def create_chart(graph_name, chart_filter=None):
+    """Create a plotly figure for the specified chart"""
+    import plotly.express as px
+    import plotly.graph_objects as go
+    import pandas as pd
+
+    # Get data for this chart
+    df = get_chart_data(graph_name, chart_filter)
+
+    if df.empty:
+        # Return a message if no data is available
+        return html.Div("No data available for this chart")
+
+    # Get chart metadata from the first row
+    metadata = df.iloc[0]
+
+    # Format the title
+    title = f"{metadata['DATA_QUALITY_CATEGORY'].title()}: {graph_name.replace('_', ' ').title()}"
+    if chart_filter and metadata['FILTER_DESCRIPTION'] != 'N/A':
+        title += f" ({metadata['FILTER_DESCRIPTION']}: {chart_filter})"
+
+    # Check if this is a matrix chart (from the name)
+    is_matrix_chart = 'matrix' in graph_name.lower()
+
+    # For matrix charts, if X-axis description is not N/A but X-axis values are null, show error
+    if is_matrix_chart and metadata['X_AXIS_DESCRIPTION'] != 'N/A' and all(pd.isna(df['X_AXIS'])):
+        return html.Div([
+            html.H5(title, className="text-center"),
+            html.Div("Chart cannot be rendered because X axis values are missing.",
+                     className="alert alert-warning")
+        ])
+
+    # Check if this is a time series chart (special case)
+    is_time_series = False
+    if 'date' in metadata['X_AXIS_DESCRIPTION'].lower() or 'date' in metadata['Y_AXIS_DESCRIPTION'].lower():
+        is_time_series = True
+        # Convert date strings to datetime objects for proper sorting
+        if not all(pd.isna(df['X_AXIS'])):
+            df['X_AXIS'] = pd.to_datetime(df['X_AXIS'], errors='coerce')
+            df = df.sort_values('X_AXIS')
+        if not all(pd.isna(df['Y_AXIS'])):
+            df['Y_AXIS'] = pd.to_datetime(df['Y_AXIS'], errors='coerce')
+            df = df.sort_values('Y_AXIS')
+
+    # Case 1: Both X and Y axes have values - create a matrix/table view
+    if (metadata['X_AXIS_DESCRIPTION'] != 'N/A' and metadata['Y_AXIS_DESCRIPTION'] != 'N/A' and
+            not all(pd.isna(df['X_AXIS'])) and not all(pd.isna(df['Y_AXIS']))):
+        try:
+            # Create a pivot table
+            pivot_df = df.pivot_table(
+                values='VALUE',
+                index='Y_AXIS',
+                columns='X_AXIS',
+                aggfunc='first'
+            ).reset_index()
+
+            # Create a table figure
+            fig = go.Figure(data=[go.Table(
+                header=dict(
+                    values=[metadata['Y_AXIS_DESCRIPTION']] + pivot_df.columns.tolist()[1:],
+                    fill_color='paleturquoise',
+                    align='left'
+                ),
+                cells=dict(
+                    values=[pivot_df['Y_AXIS']] + [pivot_df[col] for col in pivot_df.columns[1:]],
+                    fill_color='lavender',
+                    align='left'
+                )
+            )])
+
+            fig.update_layout(title=title)
+            return dcc.Graph(figure=fig)
+        except Exception as e:
+            # If pivot fails, fall back to a standard bar chart
+            pass
+
+    # Case 2: X axis has values, Y axis is empty or N/A - create a bar chart with X axis
+    elif metadata['X_AXIS_DESCRIPTION'] != 'N/A' and not all(pd.isna(df['X_AXIS'])):
+        fig = px.bar(
+            df,
+            x='X_AXIS',
+            y='VALUE',
+            title=title,
+            labels={
+                'VALUE': metadata['SUM_DESCRIPTION'] if pd.notna(metadata['SUM_DESCRIPTION']) else 'Value',
+                'X_AXIS': metadata['X_AXIS_DESCRIPTION']
+            }
+        )
+
+    # Case 3: Y axis has values, X axis is empty or N/A - create a bar chart with Y axis as X
+    elif metadata['Y_AXIS_DESCRIPTION'] != 'N/A' and not all(pd.isna(df['Y_AXIS'])) and not is_matrix_chart:
+        fig = px.bar(
+            df,
+            x='Y_AXIS',  # Use Y_AXIS for the X-axis of the chart
+            y='VALUE',
+            title=title,
+            labels={
+                'VALUE': metadata['SUM_DESCRIPTION'] if pd.notna(metadata['SUM_DESCRIPTION']) else 'Value',
+                'Y_AXIS': metadata['Y_AXIS_DESCRIPTION']
+            }
+        )
+
+    # Case 4: For non-matrix charts, if X axis description is not N/A but values are null
+    elif not is_matrix_chart and metadata['X_AXIS_DESCRIPTION'] != 'N/A' and all(pd.isna(df['X_AXIS'])):
+        # For time series charts, use the X_AXIS column in X_AXIS_DESCRIPTION
+        if 'over_time' in graph_name.lower():
+            fig = px.bar(
+                df,
+                x='X_AXIS',  # This will be blank but we'll use the description
+                y='VALUE',
+                title=title,
+                labels={
+                    'VALUE': metadata['SUM_DESCRIPTION'] if pd.notna(metadata['SUM_DESCRIPTION']) else 'Value',
+                    'X_AXIS': metadata['X_AXIS_DESCRIPTION']
+                }
+            )
+        else:
+            # For other charts, use Y_AXIS as X
+            fig = px.bar(
+                df,
+                x='Y_AXIS',
+                y='VALUE',
+                title=title,
+                labels={
+                    'VALUE': metadata['SUM_DESCRIPTION'] if pd.notna(metadata['SUM_DESCRIPTION']) else 'Value',
+                    'Y_AXIS': metadata['Y_AXIS_DESCRIPTION'] if metadata['Y_AXIS_DESCRIPTION'] != 'N/A' else metadata[
+                        'X_AXIS_DESCRIPTION']
+                }
+            )
+
+    # Fallback case: Use whatever axis has values
+    else:
+        # Determine which column to use for the x-axis
+        if not all(pd.isna(df['X_AXIS'])):
+            x_col = 'X_AXIS'
+            x_label = metadata['X_AXIS_DESCRIPTION'] if metadata['X_AXIS_DESCRIPTION'] != 'N/A' else 'X Axis'
+        elif not all(pd.isna(df['Y_AXIS'])) and not is_matrix_chart:
+            x_col = 'Y_AXIS'
+            x_label = metadata['Y_AXIS_DESCRIPTION'] if metadata['Y_AXIS_DESCRIPTION'] != 'N/A' else 'Y Axis'
+        else:
+            # If both axes are empty or it's a matrix chart with missing X values, show error
+            return html.Div([
+                html.H5(title, className="text-center"),
+                html.Div("Chart cannot be rendered because necessary axis values are missing.",
+                         className="alert alert-warning")
+            ])
+
+        # Create a simple bar chart
+        fig = px.bar(
+            df,
+            x=x_col,
+            y='VALUE',
+            title=title,
+            labels={
+                'VALUE': metadata['SUM_DESCRIPTION'] if pd.notna(metadata['SUM_DESCRIPTION']) else 'Value',
+                x_col: x_label
+            }
+        )
+
+    # Improve layout
+    fig.update_layout(
+        template="plotly_white",
+        margin=dict(l=40, r=40, t=60, b=40),
+    )
+
+    # For time series data, format the x-axis to show dates properly
+    if is_time_series:
+        fig.update_xaxes(
+            tickformat="%b %Y",
+            tickangle=45
+        )
+
+    return dcc.Graph(figure=fig)
 
 
 # Function to parse the contents of an uploaded file
@@ -474,6 +806,45 @@ def create_test_modal_content(row):
     return modal_content
 
 
+def get_data_availability():
+    """Check what data is available in the database"""
+    conn = get_db_connection()
+
+    # Check for test results
+    test_results_count = pd.read_sql_query("""
+        SELECT COUNT(*) as count FROM test_results
+    """, conn).iloc[0]['count']
+
+    # Check for chart data
+    chart_data_count = pd.read_sql_query("""
+        SELECT COUNT(*) as count FROM chart_data
+    """, conn).iloc[0]['count'] if table_exists(conn, 'chart_data') else 0
+
+    # Get chart categories if available
+    chart_categories = pd.read_sql_query("""
+        SELECT DISTINCT DATA_QUALITY_CATEGORY, COUNT(*) as count
+        FROM chart_data
+        GROUP BY DATA_QUALITY_CATEGORY
+    """, conn) if table_exists(conn, 'chart_data') else pd.DataFrame()
+
+    conn.close()
+
+    return {
+        'test_results': test_results_count,
+        'chart_data': chart_data_count,
+        'chart_categories': chart_categories.to_dict('records') if not chart_categories.empty else []
+    }
+
+def table_exists(conn, table_name):
+    """Check if a table exists in the database"""
+    query = f"""
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name='{table_name}'
+    """
+    result = conn.execute(query).fetchone()
+    return result is not None
+
+
 # Layout with Bootstrap cards/tiles
 layout = html.Div([
     html.H1('Data Quality Results Dashboard', className='mb-4'),
@@ -506,6 +877,19 @@ layout = html.Div([
                         multiple=False
                     ),
                     html.Div(id='output-data-upload')
+                ])
+            ], className="mb-4"),
+            width=12
+        ),
+    ]),
+
+    # Data availibility
+    dbc.Row([
+        dbc.Col(
+            dbc.Card([
+                dbc.CardHeader("Data Availability", className="bg-primary text-white"),
+                dbc.CardBody([
+                    html.Div(id='data-availability-display')
                 ])
             ], className="mb-4"),
             width=12
@@ -582,6 +966,26 @@ layout = html.Div([
         ])
     ], className="mb-4"),
 
+    # Visualizations Exploratory
+    dbc.Row([
+        dbc.Col(
+            dbc.Card([
+                dbc.CardHeader("Data Visualizations", className="bg-primary text-white"),
+                dbc.CardBody([
+                    html.P("Select a chart to display:"),
+                    dcc.Dropdown(
+                        id='chart-selector',
+                        options=[],
+                        placeholder="Select a chart"
+                    ),
+                    html.Div(id='chart-filter-container', className="mt-3"),
+                    html.Div(id='chart-display', className="mt-3")
+                ])
+            ], className="mb-4"),
+            width=12
+        ),
+    ]),
+
     # Add modal for data mart details
     dbc.Modal([
         dbc.ModalHeader(id="mart-modal-header"),
@@ -614,7 +1018,7 @@ layout = html.Div([
 )
 def update_output(contents, filename):
     if contents is not None:
-        return parse_contents(contents, filename)
+        return parse_chart_data_contents(contents, filename)
     return html.Div()
 
 
@@ -1461,3 +1865,164 @@ def update_passing_pagination(page, json_data):
 #
 #     except Exception as e:
 #         return html.P(f"Error retrieving test category data: {str(e)}")
+
+@callback(
+    Output('chart-selector', 'options'),
+    [Input('refresh-button', 'n_clicks'),
+     Input('output-data-upload', 'children')]
+)
+def update_chart_selector(n_clicks, upload_output):
+    charts_df = get_available_charts()
+
+    if charts_df.empty:
+        return []
+
+    # Create options for the dropdown
+    options = []
+    for _, row in charts_df.iterrows():
+        # Format the display name
+        display_name = f"{row['DATA_QUALITY_CATEGORY'].title()}: {row['GRAPH_NAME'].replace('_', ' ').title()}"
+
+        # Add details about the chart
+        details = []
+        if row['X_AXIS_DESCRIPTION'] != 'N/A':
+            details.append(f"X: {row['X_AXIS_DESCRIPTION']}")
+        if row['Y_AXIS_DESCRIPTION'] != 'N/A':
+            details.append(f"Y: {row['Y_AXIS_DESCRIPTION']}")
+        if row['FILTER_DESCRIPTION'] != 'N/A':
+            details.append(f"Filter: {row['FILTER_DESCRIPTION']}")
+
+        if details:
+            display_name += f" ({', '.join(details)})"
+
+        options.append({
+            'label': display_name,
+            'value': row['GRAPH_NAME']
+        })
+
+    return options
+
+
+# Callback to show filter options if applicable
+@callback(
+    Output('chart-filter-container', 'children'),
+    Input('chart-selector', 'value')
+)
+def update_chart_filter(selected_chart):
+    if not selected_chart:
+        return html.Div()
+
+    # Get filter values for this chart
+    filter_values = get_chart_filter_values(selected_chart)
+
+    if not filter_values:
+        # Return an empty div if there are no filter values
+        return html.Div()
+
+    # Get chart metadata to display filter description
+    charts_df = get_available_charts()
+    chart_info = charts_df[charts_df['GRAPH_NAME'] == selected_chart]
+
+    if chart_info.empty:
+        return html.Div()
+
+    chart_info = chart_info.iloc[0]
+    filter_description = chart_info['FILTER_DESCRIPTION']
+
+    # Create filter dropdown with a pattern-matching ID
+    return html.Div([
+        html.Label(f"Filter by {filter_description}:"),
+        dcc.Dropdown(
+            id={'type': 'chart-filter', 'index': 0},
+            options=[{'label': val, 'value': val} for val in filter_values],
+            value=filter_values[0] if filter_values else None,
+            clearable=False
+        )
+    ])
+
+
+@callback(
+    Output('chart-display', 'children'),
+    [Input('chart-selector', 'value'),
+     Input({'type': 'chart-filter', 'index': ALL}, 'value')],
+    [State('chart-filter-container', 'children')]
+)
+def update_chart_display(selected_chart, filter_values, filter_container):
+    if not selected_chart:
+        return html.Div("Please select a chart to display")
+
+    # Check if the filter exists (if filter_container is not empty)
+    # If there's no filter, we can pass None to create_chart
+    if not filter_container or not filter_values or not filter_values[0]:
+        return create_chart(selected_chart, None)
+
+    return create_chart(selected_chart, filter_values[0])
+
+
+@callback(
+    Output('data-availability-display', 'children'),
+    [Input('refresh-button', 'n_clicks'),
+     Input('output-data-upload', 'children')]
+)
+def update_data_availability(n_clicks, upload_output):
+    availability = get_data_availability()
+
+    # Create badges for different data types
+    test_results_badge = dbc.Badge(
+        f"{availability['test_results']} records",
+        color="success" if availability['test_results'] > 0 else "danger",
+        className="me-1"
+    )
+
+    chart_data_badge = dbc.Badge(
+        f"{availability['chart_data']} records",
+        color="success" if availability['chart_data'] > 0 else "danger",
+        className="me-1"
+    )
+
+    # Create cards for each data category
+    cards = [
+        dbc.Card([
+            dbc.CardBody([
+                html.H5("Test Results", className="card-title"),
+                html.P([
+                    "Status: ",
+                    test_results_badge
+                ]),
+                html.P("Data quality test results used for determining data mart usability.")
+            ])
+        ], className="mb-3"),
+
+        dbc.Card([
+            dbc.CardBody([
+                html.H5("Chart Data", className="card-title"),
+                html.P([
+                    "Status: ",
+                    chart_data_badge
+                ]),
+                html.P("Data for visualizing metrics across different dimensions.")
+            ])
+        ], className="mb-3")
+    ]
+
+    # Add cards for chart categories if available
+    if availability['chart_categories']:
+        category_items = []
+        for cat in availability['chart_categories']:
+            category_items.append(
+                dbc.ListGroupItem([
+                    html.Strong(cat['DATA_QUALITY_CATEGORY'].title() + ": "),
+                    f"{cat['count']} data points"
+                ])
+            )
+
+        cards.append(
+            dbc.Card([
+                dbc.CardBody([
+                    html.H5("Available Chart Categories", className="card-title"),
+                    dbc.ListGroup(category_items)
+                ])
+            ])
+        )
+
+    return html.Div(cards)
