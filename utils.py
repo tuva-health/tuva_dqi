@@ -502,7 +502,7 @@ def parse_contents(contents, filename):
 # Function to get data from the database
 def get_data_from_db(limit=100):
     conn = get_db_connection()
-    df = pd.read_sql_query(f"SELECT * FROM test_results LIMIT {limit}", conn)
+    df = pd.read_sql_query(f"SELECT * FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5 LIMIT {limit}", conn)
     conn.close()
     return df
 
@@ -557,7 +557,7 @@ def get_data_quality_grade():
 def get_tests_completed_count():
     conn = get_db_connection()
     count = pd.read_sql_query("""
-        SELECT COUNT(*) as count FROM test_results
+        SELECT COUNT(*) as count FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
     """, conn).iloc[0]['count']
     conn.close()
     return count
@@ -566,7 +566,7 @@ def get_tests_completed_count():
 def get_last_test_run_time():
     conn = get_db_connection()
     last_time = pd.read_sql_query("""
-        SELECT MAX(GENERATED_AT) as last_run FROM test_results
+        SELECT MAX(GENERATED_AT) as last_run FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
     """, conn).iloc[0]['last_run']
     conn.close()
     return last_time if last_time else "No data available"
@@ -638,6 +638,7 @@ def get_outstanding_errors():
             FLAG_FINANCIAL_PMPM, FLAG_QUALITY_MEASURES, FLAG_READMISSION
         FROM test_results 
         WHERE STATUS != 'pass' AND SEVERITY_LEVEL IS NOT NULL
+        AND CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
         ORDER BY SEVERITY_LEVEL ASC
     """, conn)
     conn.close()
@@ -808,7 +809,7 @@ def get_data_availability():
 
     # Check for test results
     test_results_count = pd.read_sql_query("""
-        SELECT COUNT(*) as count FROM test_results
+        SELECT COUNT(*) as count FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
     """, conn).iloc[0]['count']
 
     # Check for chart data
@@ -845,13 +846,16 @@ def get_all_tests():
     conn = get_db_connection()
     df = pd.read_sql_query("""
         SELECT 
-            UNIQUE_ID, SEVERITY_LEVEL, DATABASE_NAME, SCHEMA_NAME, TABLE_NAME, 
+            UNIQUE_ID, 
+            CAST(SEVERITY_LEVEL AS INTEGER) AS SEVERITY_LEVEL, 
+            DATABASE_NAME, SCHEMA_NAME, TABLE_NAME, 
             TEST_COLUMN_NAME, TEST_ORIGINAL_NAME, TEST_TYPE, TEST_SUB_TYPE, 
             TEST_DESCRIPTION, STATUS, QUALITY_DIMENSION,
             FLAG_SERVICE_CATEGORIES, FLAG_CCSR, FLAG_CMS_CHRONIC_CONDITIONS,
             FLAG_TUVA_CHRONIC_CONDITIONS, FLAG_CMS_HCCS, FLAG_ED_CLASSIFICATION,
             FLAG_FINANCIAL_PMPM, FLAG_QUALITY_MEASURES, FLAG_READMISSION
         FROM test_results 
+        WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
         ORDER BY SEVERITY_LEVEL ASC, STATUS DESC, TABLE_NAME ASC
     """, conn)
     conn.close()
@@ -880,13 +884,14 @@ def get_mart_test_summary():
             SELECT 
                 COUNT(*) as total_tests,
                 SUM(CASE WHEN STATUS = 'pass' THEN 1 ELSE 0 END) as passing_tests,
-                SUM(CASE WHEN STATUS != 'pass' AND SEVERITY_LEVEL = 1 THEN 1 ELSE 0 END) as sev1_fails,
-                SUM(CASE WHEN STATUS != 'pass' AND SEVERITY_LEVEL = 2 THEN 1 ELSE 0 END) as sev2_fails,
-                SUM(CASE WHEN STATUS != 'pass' AND SEVERITY_LEVEL = 3 THEN 1 ELSE 0 END) as sev3_fails,
-                SUM(CASE WHEN STATUS != 'pass' AND SEVERITY_LEVEL = 4 THEN 1 ELSE 0 END) as sev4_fails,
-                SUM(CASE WHEN STATUS != 'pass' AND SEVERITY_LEVEL = 5 THEN 1 ELSE 0 END) as sev5_fails
+                SUM(CASE WHEN STATUS != 'pass' AND CAST(SEVERITY_LEVEL AS INTEGER) = 1 THEN 1 ELSE 0 END) as sev1_fails,
+                SUM(CASE WHEN STATUS != 'pass' AND CAST(SEVERITY_LEVEL AS INTEGER) = 2 THEN 1 ELSE 0 END) as sev2_fails,
+                SUM(CASE WHEN STATUS != 'pass' AND CAST(SEVERITY_LEVEL AS INTEGER) = 3 THEN 1 ELSE 0 END) as sev3_fails,
+                SUM(CASE WHEN STATUS != 'pass' AND CAST(SEVERITY_LEVEL AS INTEGER) = 4 THEN 1 ELSE 0 END) as sev4_fails,
+                SUM(CASE WHEN STATUS != 'pass' AND CAST(SEVERITY_LEVEL AS INTEGER) = 5 THEN 1 ELSE 0 END) as sev5_fails
             FROM test_results 
             WHERE {flag_column} = 1
+            AND CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
         """
 
         result = pd.read_sql_query(query, conn).iloc[0]

@@ -212,13 +212,13 @@ def generate_report(n_clicks, container_id):
     # Get passing and failing test counts
     conn = get_db_connection()
     passing_tests = pd.read_sql_query("""
-        SELECT COUNT(*) as count FROM test_results WHERE STATUS = 'pass'
+        SELECT COUNT(*) as count FROM test_results WHERE STATUS = 'pass' AND CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
     """, conn).iloc[0]['count']
     failing_tests = total_tests - passing_tests
 
     # Get database name
     database_name = pd.read_sql_query("""
-        SELECT DISTINCT DATABASE_NAME FROM test_results LIMIT 1
+        SELECT DISTINCT DATABASE_NAME FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5 LIMIT 1
     """, conn).iloc[0]['DATABASE_NAME'] if total_tests > 0 else "N/A"
 
     conn.close()
@@ -443,7 +443,16 @@ def generate_report(n_clicks, container_id):
 
         all_tests_table_rows = []
         for _, row in all_tests.iterrows():
-            severity_level = int(row['SEVERITY_LEVEL']) if pd.notna(row['SEVERITY_LEVEL']) else 0
+
+            try:
+                if pd.isna(row['SEVERITY_LEVEL']):
+                    severity_level = 0
+                else:
+                    # Try to convert to float first, then to int to handle both string and numeric formats
+                    severity_level = int(float(row['SEVERITY_LEVEL']))
+            except (ValueError, TypeError):
+                # If conversion fails, set to 0
+                severity_level = 0
 
             # Combine test name and description
             test_name = row['TEST_ORIGINAL_NAME']
