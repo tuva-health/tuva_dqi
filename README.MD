@@ -102,10 +102,9 @@ dbt test
 ```
 tuva-data-quality-dashboard/
 ├── app.py                 # Main application file
-├── utils.py               # Utility functions
+├── utils.py               # Utility functions - required to resolve duplicate callback issues
 ├── assets/                # Static assets (CSS, images)
 │   ├── custom.css         # Custom styling
-│   └── tuva_logo.png      # Tuva logo
 ├── pages/                 # Dashboard pages
 │   ├── home.py            # Home page
 │   ├── analytics.py       # DQI Dashboard page
