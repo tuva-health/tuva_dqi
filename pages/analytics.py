@@ -1,31 +1,27 @@
-import dash
-from dash import html, dcc, callback, Input, Output, State, dash_table, ctx, ALL
-import dash_bootstrap_components as dbc
 import json
-import pandas as pd
-import sqlite3
-import os
-import io
-import base64
 import traceback
 
+import dash
+import dash_bootstrap_components as dbc
+import pandas as pd
+from dash import ALL, Input, Output, State, callback, ctx, dash_table, dcc, html
+
 from utils import (
-    get_data_quality_grade,
-    get_tests_completed_count,
-    get_last_test_run_time,
-    get_mart_statuses,
-    get_outstanding_errors,
-    get_available_charts,
     create_chart,
-    get_mart_tests,
-    get_data_from_db,
-    get_data_availability,
-    parse_chart_data_contents,
-    get_chart_filter_values,
     create_test_modal_content,
     create_test_table,
+    get_available_charts,
+    get_chart_filter_values,
+    get_data_availability,
+    get_data_from_db,
+    get_data_quality_grade,
+    get_last_test_run_time,
+    get_mart_statuses,
+    get_mart_tests,
+    get_outstanding_errors,
+    get_tests_completed_count,
+    parse_chart_data_contents,
 )
-
 
 # Register the page
 dash.register_page(__name__, path="/analytics", name="DQI Dashboard")
@@ -403,6 +399,7 @@ def update_last_test_run(n_clicks, upload_output):
         if last_run and last_run != "No data available":
             # Format the timestamp for better readability
             from datetime import datetime, timezone
+
             import pytz  # You'll need to install this package if not already installed
 
             try:

@@ -1,7 +1,8 @@
-import dash
-from dash import Dash, html, dcc
-import dash_bootstrap_components as dbc
 import os
+
+import dash
+import dash_bootstrap_components as dbc
+from dash import Dash, html
 
 app = Dash(
     __name__,

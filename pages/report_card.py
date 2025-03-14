@@ -1,25 +1,24 @@
-import dash
-from dash import html, dcc, callback, Input, Output, State
-import dash_bootstrap_components as dbc
-import pandas as pd
-import sqlite3
 import json
 from datetime import datetime
+
+import dash
+import dash_bootstrap_components as dbc
+import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
+from dash import Input, Output, callback, dcc, html
 
 # Import helper functions from analytics page
 from utils import (
-    get_db_connection,
-    get_data_quality_grade,
-    get_tests_completed_count,
-    get_last_test_run_time,
-    get_outstanding_errors,
-    get_available_charts,
     create_chart,
     get_all_tests,
-    get_quality_dimension_summary,
+    get_available_charts,
+    get_data_quality_grade,
+    get_db_connection,
+    get_last_test_run_time,
     get_mart_test_summary,
+    get_outstanding_errors,
+    get_quality_dimension_summary,
+    get_tests_completed_count,
 )
 
 # Register the page
@@ -367,7 +366,7 @@ def generate_report(n_clicks, container_id):
             # Format the timestamp for better readability
             dt = datetime.strptime(last_run, "%Y-%m-%d %H:%M:%S")
             formatted_last_run = dt.strftime("%B %d, %Y at %I:%M %p")
-        except:
+        except Exception:
             formatted_last_run = last_run
     else:
         formatted_last_run = last_run

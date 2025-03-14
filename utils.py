@@ -1,13 +1,14 @@
-import pandas as pd
-import sqlite3
-import json
 import base64
 import io
+import json
+import sqlite3
 import traceback
-from datetime import datetime
-import pytz
-from dash import html, dcc, callback, Input, Output, State, dash_table, ctx, ALL
+
 import dash_bootstrap_components as dbc
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from dash import dash_table, dcc, html
 
 
 # Function to get tests for a specific mart
@@ -27,7 +28,7 @@ def get_mart_tests(mart_name, status=None):
     if status:
         query += f" AND STATUS = '{status}'"
     else:
-        query += f" AND STATUS != 'pass'"
+        query += " AND STATUS != 'pass'"
 
     query += " ORDER BY SEVERITY_LEVEL ASC"
 
@@ -237,7 +238,7 @@ def parse_chart_data_contents(contents, filename):
 
 
 def get_available_charts():
-    """Get a list of available charts from the database"""
+    """Get a list of available charts from the database."""
     try:
         conn = get_db_connection()
         df = pd.read_sql_query(
@@ -263,7 +264,7 @@ def get_available_charts():
 
 
 def get_chart_data(graph_name, chart_filter=None):
-    """Get data for a specific chart"""
+    """Get data for a specific chart."""
     try:
         conn = get_db_connection()
         query = f"""
@@ -283,7 +284,7 @@ def get_chart_data(graph_name, chart_filter=None):
 
 
 def get_chart_filter_values(graph_name):
-    """Get unique filter values for a chart"""
+    """Get unique filter values for a chart."""
     try:
         conn = get_db_connection()
         query = f"""
@@ -303,11 +304,7 @@ def get_chart_filter_values(graph_name):
 
 
 def create_chart(graph_name, chart_filter=None):
-    """Create a plotly figure for the specified chart"""
-    import plotly.express as px
-    import plotly.graph_objects as go
-    import pandas as pd
-
+    """Create a plotly figure for the specified chart."""
     # Get data for this chart
     df = get_chart_data(graph_name, chart_filter)
 
@@ -392,7 +389,7 @@ def create_chart(graph_name, chart_filter=None):
 
             fig.update_layout(title=title)
             return dcc.Graph(figure=fig)
-        except Exception as e:
+        except Exception:
             # If pivot fails, fall back to a standard bar chart
             pass
 
@@ -622,15 +619,6 @@ def get_data_quality_grade():
         """
         SELECT COUNT(*) as count FROM test_results 
         WHERE STATUS != 'pass' AND SEVERITY_LEVEL = 4
-    """,
-        conn,
-    ).iloc[0]["count"]
-
-    # Check for Sev 5 issues
-    sev5_count = pd.read_sql_query(
-        """
-        SELECT COUNT(*) as count FROM test_results 
-        WHERE STATUS != 'pass' AND SEVERITY_LEVEL = 5
     """,
         conn,
     ).iloc[0]["count"]
@@ -990,7 +978,7 @@ def create_test_modal_content(row):
 
 
 def get_data_availability():
-    """Check what data is available in the database"""
+    """Check what data is available in the database."""
     conn = get_db_connection()
 
     # Check for test results
@@ -1039,7 +1027,7 @@ def get_data_availability():
 
 
 def table_exists(conn, table_name):
-    """Check if a table exists in the database"""
+    """Check if a table exists in the database."""
     query = f"""
         SELECT name FROM sqlite_master 
         WHERE type='table' AND name='{table_name}'
@@ -1049,7 +1037,7 @@ def table_exists(conn, table_name):
 
 
 def get_all_tests():
-    """Get all tests from the database with their status"""
+    """Get all tests from the database with their status."""
     conn = get_db_connection()
     df = pd.read_sql_query(
         """
@@ -1073,7 +1061,7 @@ def get_all_tests():
 
 
 def get_mart_test_summary():
-    """Get a summary of tests by data mart"""
+    """Get a summary of tests by data mart."""
     conn = get_db_connection()
 
     # Create a list to store results for each mart
@@ -1167,7 +1155,7 @@ def get_mart_test_summary():
 
 
 def get_quality_dimension_summary():
-    """Get a summary of tests by quality dimension"""
+    """Get a summary of tests by quality dimension."""
     conn = get_db_connection()
 
     # Get counts by quality dimension and status
