@@ -18,7 +18,7 @@ def get_mart_tests(mart_name, status=None):
         SELECT 
             UNIQUE_ID, SEVERITY_LEVEL, DATABASE_NAME, TABLE_NAME, TEST_COLUMN_NAME, 
             TEST_ORIGINAL_NAME, TEST_TYPE, TEST_SUB_TYPE, TEST_DESCRIPTION,
-            TEST_RESULTS_QUERY, RESULT_ROWS, STATUS
+            TEST_RESULTS_QUERY, STATUS
         FROM test_results 
         WHERE {flag_column} = 1
     """
@@ -75,7 +75,6 @@ def init_db():
         STATUS TEXT,
         FAILURES INTEGER,
         FAILED_ROW_COUNT TEXT,
-        RESULT_ROWS TEXT,
         TEST_CATEGORY TEXT,
         SEVERITY_LEVEL INTEGER,
         FLAG_SERVICE_CATEGORIES INTEGER,
@@ -632,7 +631,7 @@ def get_outstanding_errors():
         SELECT 
             UNIQUE_ID, SEVERITY_LEVEL, DATABASE_NAME, TABLE_NAME, TEST_COLUMN_NAME, 
             TEST_ORIGINAL_NAME, TEST_TYPE, TEST_SUB_TYPE, TEST_DESCRIPTION,
-            TEST_RESULTS_QUERY, RESULT_ROWS, STATUS,
+            TEST_RESULTS_QUERY, STATUS,
             FLAG_SERVICE_CATEGORIES, FLAG_CCSR, FLAG_CMS_CHRONIC_CONDITIONS,
             FLAG_TUVA_CHRONIC_CONDITIONS, FLAG_CMS_HCCS, FLAG_ED_CLASSIFICATION,
             FLAG_FINANCIAL_PMPM, FLAG_QUALITY_MEASURES, FLAG_READMISSION
@@ -793,8 +792,6 @@ def create_test_modal_content(row):
         ]),
 
         html.Hr(),
-        html.H6("Result Rows:"),
-        html.P(row['RESULT_ROWS'] if pd.notna(row['RESULT_ROWS']) else "No result rows available"),
     ]
 
     # Filter out any None values from the modal content
