@@ -3,11 +3,16 @@ from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
 import os
 
-app = Dash(__name__, use_pages=True,
-           external_stylesheets=[dbc.themes.BOOTSTRAP,
-                                 'https://use.fontawesome.com/releases/v5.15.1/css/all.css',
-                                 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'],
-           suppress_callback_exceptions=True)
+app = Dash(
+    __name__,
+    use_pages=True,
+    external_stylesheets=[
+        dbc.themes.BOOTSTRAP,
+        "https://use.fontawesome.com/releases/v5.15.1/css/all.css",
+        "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+    ],
+    suppress_callback_exceptions=True,
+)
 
 # Create a navbar with the logo and links
 navbar = dbc.Navbar(
@@ -30,7 +35,9 @@ navbar = dbc.Navbar(
             dbc.Collapse(
                 dbc.Nav(
                     [
-                        dbc.NavItem(dbc.NavLink(page['name'], href=page["relative_path"]))
+                        dbc.NavItem(
+                            dbc.NavLink(page["name"], href=page["relative_path"])
+                        )
                         for page in dash.page_registry.values()
                     ],
                     className="ms-auto",
@@ -45,25 +52,38 @@ navbar = dbc.Navbar(
     className="mb-4",
 )
 
-app.layout = html.Div([
-    navbar,
-    dbc.Container([
-        dash.page_container
-    ], fluid=True, className="page-container px-4"),
-
-    # Add a footer
-    html.Footer(
-        dbc.Container([
-            dbc.Row([
-                dbc.Col([
-                    html.Img(src="/assets/tuva_logo_white.png", height="40px", className="mb-3"),
-                    html.P("© 2025 TUVA Health. All rights reserved.")
-                ], width={"size": 6, "offset": 3}, className="text-center")
-            ])
-        ]),
-        className="footer"
-    )
-])
+app.layout = html.Div(
+    [
+        navbar,
+        dbc.Container(
+            [dash.page_container], fluid=True, className="page-container px-4"
+        ),
+        # Add a footer
+        html.Footer(
+            dbc.Container(
+                [
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    html.Img(
+                                        src="/assets/tuva_logo_white.png",
+                                        height="40px",
+                                        className="mb-3",
+                                    ),
+                                    html.P("© 2025 TUVA Health. All rights reserved."),
+                                ],
+                                width={"size": 6, "offset": 3},
+                                className="text-center",
+                            )
+                        ]
+                    )
+                ]
+            ),
+            className="footer",
+        ),
+    ]
+)
 
 
 # Add callback for navbar toggle
@@ -80,7 +100,7 @@ def toggle_navbar_collapse(n, is_open):
 
 server = app.server  # Expose Flask server for gunicorn
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Get port from environment variable or use 8080 as default
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=False)
