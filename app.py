@@ -4,6 +4,8 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import Dash, html
 
+from utils import init_db
+
 app = Dash(
     __name__,
     use_pages=True,
@@ -103,5 +105,6 @@ server = app.server  # Expose Flask server for gunicorn
 
 if __name__ == "__main__":
     # Get port from environment variable or use 8080 as default
+    init_db()
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=False)
