@@ -11,8 +11,8 @@ import plotly.graph_objects as go
 from dash import dash_table, dcc, html
 
 
-# Function to get tests for a specific mart
 def get_mart_tests(mart_name, status=None):
+    """Get tests for a specific mart."""
     conn = get_db_connection()
     flag_column = f"FLAG_{mart_name}"
 
@@ -37,14 +37,12 @@ def get_mart_tests(mart_name, status=None):
     return df
 
 
-# Create a SQLite database connection
 def get_db_connection():
     conn = sqlite3.connect("app_data.db")
     conn.row_factory = sqlite3.Row
     return conn
 
 
-# Initialize the database (create tables if they don't exist)
 def init_db():
     conn = get_db_connection()
     conn.execute("""
@@ -107,39 +105,6 @@ def init_db():
     """)
     conn.commit()
     conn.close()
-
-
-# Initialize the database when the module is loaded
-init_db()
-
-
-def get_test_category_stats():
-    conn = get_db_connection()
-
-    # Get all test categories and their counts
-    categories_df = pd.read_sql_query(
-        """
-        SELECT 
-            TEST_CATEGORY, 
-            COUNT(*) as total_tests,
-            SUM(CASE WHEN STATUS = 'pass' THEN 1 ELSE 0 END) as passing_tests
-        FROM test_results 
-        WHERE TEST_CATEGORY IS NOT NULL AND TEST_CATEGORY != ''
-        GROUP BY TEST_CATEGORY
-        ORDER BY TEST_CATEGORY
-    """,
-        conn,
-    )
-
-    conn.close()
-
-    # Calculate passing percentages
-    if not categories_df.empty:
-        categories_df["passing_percentage"] = (
-            categories_df["passing_tests"] / categories_df["total_tests"] * 100
-        ).round(1)
-
-    return categories_df
 
 
 def parse_chart_data_contents(contents, filename):
@@ -520,61 +485,7 @@ def create_chart(graph_name, chart_filter=None):
     return dcc.Graph(figure=fig)
 
 
-# Function to parse the contents of an uploaded file
-def parse_contents(contents, filename):
-    content_type, content_string = contents.split(",")
-    decoded = base64.b64decode(content_string)
-
-    try:
-        if "csv" in filename:
-            # Read the CSV file into a pandas DataFrame
-            df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
-
-            # Insert data into SQLite database
-            conn = get_db_connection()
-            # Use pandas to_sql with 'replace' if you want to overwrite existing data
-            # or 'append' to add to existing data
-            df.to_sql("test_results", conn, if_exists="replace", index=False)
-            conn.close()
-
-            return html.Div(
-                [
-                    html.H5(f"Uploaded: {filename}"),
-                    html.Hr(),
-                    html.P(f"{len(df)} rows imported successfully to database."),
-                    dash_table.DataTable(
-                        data=df.head(10).to_dict("records"),
-                        columns=[{"name": i, "id": i} for i in df.columns],
-                        page_size=10,
-                        style_table={"overflowX": "auto"},
-                        style_cell={
-                            "overflow": "hidden",
-                            "textOverflow": "ellipsis",
-                            "maxWidth": 0,
-                        },
-                    ),
-                ]
-            )
-        else:
-            return html.Div(
-                [
-                    html.H5(f"Uploaded: {filename}"),
-                    html.Hr(),
-                    html.P("Only CSV files are supported."),
-                ]
-            )
-    except Exception as e:
-        return html.Div(
-            [
-                html.H5(f"Error processing {filename}"),
-                html.Hr(),
-                html.P(f"Error: {str(e)}"),
-            ]
-        )
-
-
-# Function to get data from the database
-def get_data_from_db(limit=100):
+def get_data_from_test_results(limit=100):
     conn = get_db_connection()
     df = pd.read_sql_query(
         f"SELECT * FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5 LIMIT {limit}",
@@ -634,7 +545,7 @@ def get_data_quality_grade():
         return "C"
     elif sev4_count > 0:
         return "B"
-    else:  # sev5_count > 0 or all tests pass
+    else:
         return "A"
 
 
@@ -885,8 +796,8 @@ def create_test_table(df, table_type):
     return table_container
 
 
-# Helper function to create modal content for a test
 def create_test_modal_content(row):
+    """Helper function to create modal content for a test."""
     # Convert severity to integer if it exists
     severity_level = (
         int(row["SEVERITY_LEVEL"]) if pd.notna(row["SEVERITY_LEVEL"]) else None
