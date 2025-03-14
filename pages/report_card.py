@@ -12,9 +12,9 @@ import plotly.graph_objects as go
 from utils import (
     get_db_connection, get_data_quality_grade,
     get_tests_completed_count, get_last_test_run_time,
-    get_mart_statuses, get_outstanding_errors,
-    get_available_charts, get_chart_data, create_chart,
-    get_test_category_stats, get_all_tests, get_quality_dimension_summary, get_mart_test_summary
+    get_outstanding_errors,
+    get_available_charts, create_chart,
+    get_all_tests, get_quality_dimension_summary, get_mart_test_summary
 )
 
 # Register the page
