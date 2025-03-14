@@ -89,6 +89,21 @@ def init_db():
         FLAG_READMISSION INTEGER
     )
     ''')
+    conn.execute('''
+    CREATE TABLE IF NOT EXISTS chart_data (
+        DATA_QUALITY_CATEGORY TEXT,
+        GRAPH_NAME TEXT,
+        LEVEL_OF_DETAIL TEXT,
+        Y_AXIS_DESCRIPTION TEXT,
+        X_AXIS_DESCRIPTION TEXT,
+        FILTER_DESCRIPTION TEXT,
+        SUM_DESCRIPTION TEXT,
+        Y_AXIS TEXT,
+        X_AXIS TEXT,
+        CHART_FILTER TEXT,
+        VALUE REAL
+    )
+    ''')
     conn.commit()
     conn.close()
 
@@ -133,22 +148,7 @@ def parse_chart_data_contents(contents, filename):
             if 'DATA_QUALITY_CATEGORY' in df.columns and 'GRAPH_NAME' in df.columns:
                 # This is a chart data file
                 conn = get_db_connection()
-                # Create table if it doesn't exist
-                conn.execute('''
-                CREATE TABLE IF NOT EXISTS chart_data (
-                    DATA_QUALITY_CATEGORY TEXT,
-                    GRAPH_NAME TEXT,
-                    LEVEL_OF_DETAIL TEXT,
-                    Y_AXIS_DESCRIPTION TEXT,
-                    X_AXIS_DESCRIPTION TEXT,
-                    FILTER_DESCRIPTION TEXT,
-                    SUM_DESCRIPTION TEXT,
-                    Y_AXIS TEXT,
-                    X_AXIS TEXT,
-                    CHART_FILTER TEXT,
-                    VALUE REAL
-                )
-                ''')
+
                 # Use pandas to_sql with 'replace' to overwrite existing data
                 df.to_sql('chart_data', conn, if_exists='replace', index=False)
                 conn.close()
