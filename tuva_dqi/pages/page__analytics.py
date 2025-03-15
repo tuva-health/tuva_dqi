@@ -1,3 +1,5 @@
+import base64
+import io
 import json
 import traceback
 
@@ -5,11 +7,9 @@ import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import ALL, Input, Output, State, callback, ctx, dash_table, dcc, html
-
-from tuva_dqi.utils import (
-    create_chart,
-    create_test_modal_content,
-    create_test_table,
+from tuva_dqi.pages.charts import create_chart
+from tuva_dqi.pages.db import get_db_connection
+from tuva_dqi.pages.services import (
     get_available_charts,
     get_chart_filter_values,
     get_data_availability,
@@ -20,11 +20,334 @@ from tuva_dqi.utils import (
     get_mart_tests,
     get_outstanding_errors,
     get_tests_completed_count,
-    parse_chart_data_contents,
 )
 
 # Register the page
 dash.register_page(__name__, path="/analytics", name="DQI Dashboard")
+
+
+def create_test_table(df, table_type):
+    if df.empty:
+        return html.P(f"No {table_type} tests found for this data mart.")
+
+    # Store the full dataframe in a hidden div for later use
+    hidden_data = html.Div(
+        id=f"hidden-{table_type}-data",
+        style={"display": "none"},
+        children=json.dumps(df.to_dict("records")),
+    )
+
+    # Create a list of rows with buttons
+    rows = []
+    for i, row in df.iterrows():
+        if i >= 10:  # Only create the first 10 rows initially
+            break
+
+        severity_level = (
+            int(row["SEVERITY_LEVEL"]) if pd.notna(row["SEVERITY_LEVEL"]) else 0
+        )
+
+        # Different styling for passing vs failing tests
+        if table_type == "passing":
+            # For passing tests, use a left border with severity color
+            row_style = {
+                "className": f"mb-2 border-bottom pb-2 passing-test-row passing-severity-{severity_level}"
+            }
+        else:
+            # For failing tests, use the background color approach
+            row_style = {
+                "className": "mb-2 border-bottom pb-2",
+                "style": {
+                    "backgroundColor": "#ffcccc"
+                    if severity_level == 1
+                    else "#ffe6cc"
+                    if severity_level == 2
+                    else "#ffffcc"
+                    if severity_level == 3
+                    else "#e6ffcc"
+                    if severity_level == 4
+                    else "#ccffcc"
+                    if severity_level == 5
+                    else "white"
+                },
+            }
+
+        rows.append(
+            dbc.Row(
+                [
+                    dbc.Col(
+                        str(severity_level),
+                        width=1,
+                        className="align-self-center table-cell",
+                    ),
+                    dbc.Col(
+                        row["TABLE_NAME"],
+                        width=2,
+                        className="align-self-center table-cell",
+                    ),
+                    dbc.Col(
+                        row["TEST_COLUMN_NAME"],
+                        width=2,
+                        className="align-self-center table-cell",
+                    ),
+                    dbc.Col(
+                        row["TEST_ORIGINAL_NAME"],
+                        width=2,
+                        className="align-self-center table-cell",
+                    ),
+                    dbc.Col(
+                        row["TEST_TYPE"],
+                        width=2,
+                        className="align-self-center table-cell",
+                    ),
+                    dbc.Col(
+                        row["TEST_SUB_TYPE"] if pd.notna(row["TEST_SUB_TYPE"]) else "",
+                        width=2,
+                        className="align-self-center table-cell",
+                    ),
+                    dbc.Col(
+                        dbc.Button(
+                            "More Info",
+                            id={"type": f"{table_type}-info-button", "index": i},
+                            color="info",
+                            size="sm",
+                            className="my-1",
+                        ),
+                        width=1,
+                        className="d-flex align-items-center",
+                    ),
+                ],
+                **row_style,
+            )
+        )
+
+    # Create a header row
+    header = dbc.Row(
+        [
+            dbc.Col(html.Strong("Severity"), width=1, className="table-cell"),
+            dbc.Col(html.Strong("Table"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Column"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Name"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Type"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Test Sub Type"), width=2, className="table-cell"),
+            dbc.Col(html.Strong("Actions"), width=1, className="table-cell"),
+        ],
+        className="mb-2 border-bottom pb-2 font-weight-bold",
+    )
+
+    # Combine header and rows
+    table_content = [header] + rows
+
+    # Create a container for the table with pagination
+    table_container = html.Div(
+        [
+            hidden_data,
+            html.Div(
+                table_content, id=f"{table_type}-tests-table-content"
+            ),  # Add an ID for updating
+            dbc.Pagination(
+                id=f"{table_type}-pagination",
+                max_value=max(
+                    1, (len(df) + 9) // 10
+                ),  # Ceiling division to get number of pages
+                first_last=True,
+                previous_next=True,
+                active_page=1,
+            )
+            if len(df) > 10
+            else html.Div(),
+        ]
+    )
+
+    return table_container
+
+
+def create_test_modal_content(row):
+    """Helper function to create modal content for a test."""
+    # Convert severity to integer if it exists
+    severity_level = (
+        int(row["SEVERITY_LEVEL"]) if pd.notna(row["SEVERITY_LEVEL"]) else None
+    )
+
+    modal_content = [
+        html.H5(f"Test Details for {row['TABLE_NAME']}"),
+        html.Hr(),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        # Add word-break for long IDs
+                        html.P(
+                            [
+                                html.Strong("Unique ID: "),
+                                html.Span(
+                                    row["UNIQUE_ID"], style={"word-break": "break-all"}
+                                ),
+                            ]
+                        ),
+                        html.P(
+                            [
+                                html.Strong("Severity Level: "),
+                                str(severity_level)
+                                if severity_level is not None
+                                else "N/A",
+                            ]
+                        ),
+                        # Add database name
+                        html.P([html.Strong("Database: "), row["DATABASE_NAME"]]),
+                        html.P([html.Strong("Table: "), row["TABLE_NAME"]]),
+                        html.P([html.Strong("Column: "), row["TEST_COLUMN_NAME"]]),
+                        html.P([html.Strong("Test Name: "), row["TEST_ORIGINAL_NAME"]]),
+                        html.P([html.Strong("Test Type: "), row["TEST_TYPE"]]),
+                        html.P(
+                            [
+                                html.Strong("Test Sub Type: "),
+                                row["TEST_SUB_TYPE"]
+                                if pd.notna(row["TEST_SUB_TYPE"])
+                                else "",
+                            ]
+                        ),
+                        # Only add Status if it exists in the row
+                        html.P([html.Strong("Status: "), row["STATUS"]])
+                        if "STATUS" in row
+                        else None,
+                    ],
+                    width=12,
+                ),
+            ]
+        ),
+        html.Hr(),
+        html.H6("Test Description:"),
+        html.P(
+            row["TEST_DESCRIPTION"]
+            if pd.notna(row["TEST_DESCRIPTION"])
+            else "No description available"
+        ),
+        html.Hr(),
+        html.H6("Test Results Query:"),
+        html.Div(
+            [
+                dbc.Textarea(
+                    id="query-text",
+                    value=row["TEST_RESULTS_QUERY"]
+                    if pd.notna(row["TEST_RESULTS_QUERY"])
+                    else "No query available",
+                    readOnly=True,
+                    style={"height": "200px", "fontFamily": "monospace"},
+                ),
+                dbc.Button(
+                    "Copy to Clipboard",
+                    id="copy-query-button",
+                    color="secondary",
+                    className="mt-2",
+                    n_clicks=0,
+                ),
+                html.Div(id="copy-query-output"),
+            ]
+        ),
+        html.Hr(),
+    ]
+
+    # Filter out any None values from the modal content
+    modal_content = [item for item in modal_content if item is not None]
+
+    return modal_content
+
+
+def parse_and_display_csv_file_contents_from_upload(contents, filename):
+    content_type, content_string = contents.split(",")
+    decoded = base64.b64decode(content_string)
+
+    try:
+        if "csv" in filename:
+            # Read the CSV file into a pandas DataFrame
+            df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
+
+            # Check if this is a chart data file or test results file
+            if "DATA_QUALITY_CATEGORY" in df.columns and "GRAPH_NAME" in df.columns:
+                # This is a chart data file
+                conn = get_db_connection()
+
+                # Use pandas to_sql with 'replace' to overwrite existing data
+                df.to_sql("chart_data", conn, if_exists="replace", index=False)
+                conn.close()
+
+                return html.Div(
+                    [
+                        html.H5(f"Uploaded Chart Data: {filename}"),
+                        html.Hr(),
+                        html.P(
+                            f"{len(df)} data points imported successfully to database."
+                        ),
+                        html.P(f'Detected {df["GRAPH_NAME"].nunique()} unique charts.'),
+                        dash_table.DataTable(
+                            data=df.head(10).to_dict("records"),
+                            columns=[{"name": i, "id": i} for i in df.columns],
+                            page_size=10,
+                            style_table={"overflowX": "auto"},
+                            style_cell={
+                                "overflow": "hidden",
+                                "textOverflow": "ellipsis",
+                                "maxWidth": 0,
+                            },
+                        ),
+                    ]
+                )
+            elif "UNIQUE_ID" in df.columns and "TEST_NAME" in df.columns:
+                # This is a test results file
+                conn = get_db_connection()
+                # Use pandas to_sql with 'replace' to overwrite existing data
+                df.to_sql("test_results", conn, if_exists="replace", index=False)
+                conn.close()
+
+                return html.Div(
+                    [
+                        html.H5(f"Uploaded Test Results: {filename}"),
+                        html.Hr(),
+                        html.P(
+                            f"{len(df)} test results imported successfully to database."
+                        ),
+                        dash_table.DataTable(
+                            data=df.head(10).to_dict("records"),
+                            columns=[{"name": i, "id": i} for i in df.columns],
+                            page_size=10,
+                            style_table={"overflowX": "auto"},
+                            style_cell={
+                                "overflow": "hidden",
+                                "textOverflow": "ellipsis",
+                                "maxWidth": 0,
+                            },
+                        ),
+                    ]
+                )
+            else:
+                return html.Div(
+                    [
+                        html.H5(f"Uploaded: {filename}"),
+                        html.Hr(),
+                        html.P(
+                            "Unrecognized CSV format. Please upload either a test results file or chart data file."
+                        ),
+                    ]
+                )
+        else:
+            return html.Div(
+                [
+                    html.H5(f"Uploaded: {filename}"),
+                    html.Hr(),
+                    html.P("Only CSV files are supported."),
+                ]
+            )
+    except Exception as e:
+        return html.Div(
+            [
+                html.H5(f"Error processing {filename}"),
+                html.Hr(),
+                html.P(f"Error: {str(e)}"),
+                html.Pre(traceback.format_exc()),
+            ]
+        )
+
 
 # Layout with Bootstrap cards/tiles
 layout = html.Div(
@@ -282,7 +605,7 @@ layout = html.Div(
 )
 def update_output(contents, filename):
     if contents is not None:
-        return parse_chart_data_contents(contents, filename)
+        return parse_and_display_csv_file_contents_from_upload(contents, filename)
     return html.Div()
 
 

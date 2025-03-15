@@ -4,7 +4,6 @@ from dash import html
 
 dash.register_page(__name__, path="/", name="Home")
 
-# Hero section
 hero_section = html.Div(
     [
         html.H1("Data Quality Dashboard", className="hero-title"),
