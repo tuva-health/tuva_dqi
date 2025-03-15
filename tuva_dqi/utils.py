@@ -10,7 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from dash import dash_table, dcc, html
 
-
+# dqi_service.py
 def get_mart_tests(mart_name, status=None):
     """Get tests for a specific mart."""
     conn = get_db_connection()
@@ -36,13 +36,13 @@ def get_mart_tests(mart_name, status=None):
     conn.close()
     return df
 
-
+# db.py
 def get_db_connection():
     conn = sqlite3.connect("app_data.db")
     conn.row_factory = sqlite3.Row
     return conn
 
-
+# db.py
 def init_db():
     conn = get_db_connection()
     conn.execute("""
@@ -106,7 +106,8 @@ def init_db():
     conn.commit()
     conn.close()
 
-
+# View
+# Name view functions related to what they're displaying.
 def parse_chart_data_contents(contents, filename):
     content_type, content_string = contents.split(",")
     decoded = base64.b64decode(content_string)
@@ -201,7 +202,7 @@ def parse_chart_data_contents(contents, filename):
             ]
         )
 
-
+# services.py
 def get_available_charts():
     """Get a list of available charts from the database."""
     try:
@@ -227,7 +228,7 @@ def get_available_charts():
         print(f"Error getting available charts: {str(e)}")
         return pd.DataFrame()
 
-
+# services.py
 def get_chart_data(graph_name, chart_filter=None):
     """Get data for a specific chart."""
     try:
@@ -247,7 +248,7 @@ def get_chart_data(graph_name, chart_filter=None):
         print(f"Error getting chart data: {str(e)}")
         return pd.DataFrame()
 
-
+# services.py
 def get_chart_filter_values(graph_name):
     """Get unique filter values for a chart."""
     try:
@@ -267,7 +268,7 @@ def get_chart_filter_values(graph_name):
         print(f"Error getting chart filter values: {str(e)}")
         return []
 
-
+# in pages/charts.py
 def create_chart(graph_name, chart_filter=None):
     """Create a plotly figure for the specified chart."""
     # Get data for this chart
@@ -484,7 +485,7 @@ def create_chart(graph_name, chart_filter=None):
 
     return dcc.Graph(figure=fig)
 
-
+# services.py
 def get_data_from_test_results(limit=100):
     conn = get_db_connection()
     df = pd.read_sql_query(
@@ -494,7 +495,7 @@ def get_data_from_test_results(limit=100):
     conn.close()
     return df
 
-
+# services.py
 def get_data_quality_grade():
     conn = get_db_connection()
 
@@ -548,7 +549,7 @@ def get_data_quality_grade():
     else:
         return "A"
 
-
+# services.py
 def get_tests_completed_count():
     conn = get_db_connection()
     count = pd.read_sql_query(
@@ -560,7 +561,7 @@ def get_tests_completed_count():
     conn.close()
     return count
 
-
+# services.py
 def get_last_test_run_time():
     conn = get_db_connection()
     last_time = pd.read_sql_query(
@@ -572,7 +573,7 @@ def get_last_test_run_time():
     conn.close()
     return last_time if last_time else "No data available"
 
-
+# services.py
 def get_mart_statuses():
     conn = get_db_connection()
 
@@ -637,7 +638,7 @@ def get_mart_statuses():
     conn.close()
     return mart_statuses
 
-
+# services.py
 def get_outstanding_errors():
     conn = get_db_connection()
     df = pd.read_sql_query(
@@ -659,7 +660,7 @@ def get_outstanding_errors():
     conn.close()
     return df
 
-
+# move to analytics.py, rename to the name of the
 def create_test_table(df, table_type):
     if df.empty:
         return html.P(f"No {table_type} tests found for this data mart.")
@@ -795,7 +796,7 @@ def create_test_table(df, table_type):
 
     return table_container
 
-
+# move to analytics.py
 def create_test_modal_content(row):
     """Helper function to create modal content for a test."""
     # Convert severity to integer if it exists
@@ -887,7 +888,7 @@ def create_test_modal_content(row):
 
     return modal_content
 
-
+# services.py
 def get_data_availability():
     """Check what data is available in the database."""
     conn = get_db_connection()
@@ -936,7 +937,7 @@ def get_data_availability():
         else [],
     }
 
-
+# services.py
 def table_exists(conn, table_name):
     """Check if a table exists in the database."""
     query = f"""
@@ -946,7 +947,7 @@ def table_exists(conn, table_name):
     result = conn.execute(query).fetchone()
     return result is not None
 
-
+# services.py
 def get_all_tests():
     """Get all tests from the database with their status."""
     conn = get_db_connection()
@@ -970,7 +971,7 @@ def get_all_tests():
     conn.close()
     return df
 
-
+# services.py
 def get_mart_test_summary():
     """Get a summary of tests by data mart."""
     conn = get_db_connection()
@@ -1064,7 +1065,7 @@ def get_mart_test_summary():
     conn.close()
     return mart_summaries
 
-
+# services.py
 def get_quality_dimension_summary():
     """Get a summary of tests by quality dimension."""
     conn = get_db_connection()

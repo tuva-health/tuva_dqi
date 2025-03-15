@@ -8,7 +8,7 @@ import plotly.express as px
 from dash import Input, Output, callback, dcc, html
 
 # Import helper functions from analytics page
-from utils import (
+from tuva_dqi.utils import (
     create_chart,
     get_all_tests,
     get_available_charts,

@@ -6,7 +6,7 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import ALL, Input, Output, State, callback, ctx, dash_table, dcc, html
 
-from utils import (
+from tuva_dqi.utils import (
     create_chart,
     create_test_modal_content,
     create_test_table,
