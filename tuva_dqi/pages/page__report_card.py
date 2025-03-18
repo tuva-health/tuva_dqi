@@ -6,9 +6,9 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 from dash import Input, Output, callback, dcc, html
-from tuva_dqi.pages.charts import create_chart
-from tuva_dqi.pages.db import get_db_connection
-from tuva_dqi.pages.services import (
+from pages.charts import create_chart
+from pages.db import get_db_connection
+from pages.services import (
     get_all_tests,
     get_available_charts,
     get_data_quality_grade,

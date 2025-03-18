@@ -7,9 +7,9 @@ import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import ALL, Input, Output, State, callback, ctx, dash_table, dcc, html
-from tuva_dqi.pages.charts import create_chart
-from tuva_dqi.pages.db import get_db_connection
-from tuva_dqi.pages.services import (
+from pages.charts import create_chart
+from pages.db import get_db_connection
+from pages.services import (
     get_available_charts,
     get_chart_filter_values,
     get_data_availability,

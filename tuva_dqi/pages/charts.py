@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from dash import dcc, html
-from tuva_dqi.pages.services import get_chart_data
+from pages.services import get_chart_data
 
 
 def create_chart(graph_name, chart_filter=None):
