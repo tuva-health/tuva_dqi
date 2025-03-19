@@ -25,6 +25,13 @@ the [Tuva Health dbt package](https://github.com/tuva-health/tuva).
 - **Visualizations**: Charts showing data patterns and quality metrics
 - **Report Generation**: Printable data quality report cards
 
+### Severity Levels
+-  **Level 1**: Critical issues that prevent dbt from building  
+-  **Level 2**: Major issues affecting data reliability, specific to marts  
+-  **Level 3**: Moderate issues requiring caution in data usage, specific to marts  
+-  **Level 4**: Minor issues with limited impact, specific to marts  
+-  **Level 5**: Low-priority issues / informational dbt tests
+
 ## Getting Started
 
 ### Prerequisites
@@ -37,11 +44,11 @@ the [Tuva Health dbt package](https://github.com/tuva-health/tuva).
 1. Clone this repository:
    ```bash
    git clone https://github.com/Tuva-Health-Enterprise/dqi-dash.git
-   cd tuva-data-quality-dashboard
+   cd tuva_dqi
    ```
 2. Create a virtual environment for this repo
     ```bash
-    python -m venv .venv
+    python -m venv .venv  # If python does not work, try python3
     source .venv/bin/activate  # On Windows: .venv\Scripts\activate
     pip install -r requirements.txt
     ```
@@ -54,8 +61,8 @@ the [Tuva Health dbt package](https://github.com/tuva-health/tuva).
 ### Docker Deployment
 To run the application in a Docker container:
 ```bash
-docker build -t tuva-dq-dashboard .
-docker run -p 8080:8080 tuva-dq-dashboard
+docker build -t tuva_dqi .
+docker run -p 8080:8080 tuva_dqi
 ```
 ## Data Sources
 This dashboard consumes two main CSV files exported from the Tuva dbt package:
@@ -98,21 +105,6 @@ dbt test
 * Export `data_quality__exploratory_charts` as CSV with headers
 5.	Upload these CSV files to the dashboard using the "Import Test Results" feature
 
-## Project Structure
-```
-tuva-data-quality-dashboard/
-├── app.py                 # Main application file
-├── utils.py               # Utility functions - required to resolve duplicate callback issues
-├── assets/                # Static assets (CSS, images)
-│   ├── custom.css         # Custom styling
-├── pages/                 # Dashboard pages
-│   ├── home.py            # Home page
-│   ├── analytics.py       # DQI Dashboard page
-│   └── report_card.py     # Report Card page
-├── Dockerfile             # Docker configuration
-└── requirements.txt       # Python dependencies
-```
 ## Development Status
 This dashboard is currently in alpha/early development and has not been officially released. It is designed to work 
 with the `dqi-enhancements` branch of the Tuva dbt package, which contains the necessary data quality components.
-
