@@ -43,7 +43,7 @@ the [Tuva Health dbt package](https://github.com/tuva-health/tuva).
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/Tuva-Health-Enterprise/dqi-dash.git
+   git clone https://github.com/tuva-health/tuva_dqi.git
    cd tuva_dqi
    ```
 2. Create a virtual environment for this repo
