@@ -48,9 +48,10 @@ the [Tuva Health dbt package](https://github.com/tuva-health/tuva).
    ```
 2. Create a virtual environment for this repo
     ```bash
+    cd tuva_dqi # Second cd intentional
     python -m venv .venv  # If python does not work, try python3
     source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-    pip install -r requirements.txt
+    python -m pip install -r requirements.txt
     ```
 3.	Run the application:
     ```bash
