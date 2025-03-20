@@ -242,6 +242,135 @@ dq_dimensions = html.Div(
     ]
 )
 
+# Severity Levels
+severity_levels = html.Div(
+    [
+        html.H2("Severity Levels", className="mb-4"),
+        html.P(
+            "Test failures are categorized by severity to prioritize issues and determine data usability:"
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(
+                                    html.H5("Level 1", className="m-0 text-danger")
+                                ),
+                                dbc.CardBody(
+                                    [
+                                        html.P(
+                                            "Critical issues that prevent dbt from building",
+                                            className="mb-0",
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            className="h-100 border-danger",
+                        )
+                    ],
+                    md=6,
+                    lg=4,
+                    className="mb-4",
+                ),
+                dbc.Col(
+                    [
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(
+                                    html.H5("Level 2", className="m-0 text-warning")
+                                ),
+                                dbc.CardBody(
+                                    [
+                                        html.P(
+                                            "Major issues affecting data reliability, specific to marts",
+                                            className="mb-0",
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            className="h-100 border-warning",
+                        )
+                    ],
+                    md=6,
+                    lg=4,
+                    className="mb-4",
+                ),
+                dbc.Col(
+                    [
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(
+                                    html.H5("Level 3", className="m-0 text-warning")
+                                ),
+                                dbc.CardBody(
+                                    [
+                                        html.P(
+                                            "Moderate issues requiring caution in data usage, specific to marts",
+                                            className="mb-0",
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            className="h-100 border-warning",
+                        )
+                    ],
+                    md=6,
+                    lg=4,
+                    className="mb-4",
+                ),
+                dbc.Col(
+                    [
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(
+                                    html.H5("Level 4", className="m-0 text-info")
+                                ),
+                                dbc.CardBody(
+                                    [
+                                        html.P(
+                                            "Minor issues with limited impact, specific to marts",
+                                            className="mb-0",
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            className="h-100 border-info",
+                        )
+                    ],
+                    md=6,
+                    lg=6,
+                    className="mb-4",
+                ),
+                dbc.Col(
+                    [
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(
+                                    html.H5("Level 5", className="m-0 text-success")
+                                ),
+                                dbc.CardBody(
+                                    [
+                                        html.P(
+                                            "Low-priority issues / informational dbt tests",
+                                            className="mb-0",
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            className="h-100 border-success",
+                        )
+                    ],
+                    md=6,
+                    lg=6,
+                    className="mb-4",
+                ),
+            ]
+        ),
+    ]
+)
+
 # Data Quality Grading
 dq_grading = html.Div(
     [
@@ -386,7 +515,8 @@ layout = html.Div(
                             tab_id="tab-1",
                         ),
                         dbc.Tab(dq_dimensions, label="Test Categories", tab_id="tab-2"),
-                        dbc.Tab(dq_grading, label="Grading System", tab_id="tab-3"),
+                        dbc.Tab(severity_levels, label="Severity Levels", tab_id="tab-3"),
+                        dbc.Tab(dq_grading, label="Grading System", tab_id="tab-4"),
                     ],
                     id="tabs",
                     active_tab="tab-1",
