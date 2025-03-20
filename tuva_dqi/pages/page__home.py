@@ -515,7 +515,9 @@ layout = html.Div(
                             tab_id="tab-1",
                         ),
                         dbc.Tab(dq_dimensions, label="Test Categories", tab_id="tab-2"),
-                        dbc.Tab(severity_levels, label="Severity Levels", tab_id="tab-3"),
+                        dbc.Tab(
+                            severity_levels, label="Severity Levels", tab_id="tab-3"
+                        ),
                         dbc.Tab(dq_grading, label="Grading System", tab_id="tab-4"),
                     ],
                     id="tabs",

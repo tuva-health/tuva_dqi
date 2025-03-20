@@ -1457,6 +1457,7 @@ def store_clipboard_data(n_clicks, query_text):
         return query_text
     return dash.no_update
 
+
 # Second callback to show the success message
 @callback(
     Output("copy-query-output", "children"),
