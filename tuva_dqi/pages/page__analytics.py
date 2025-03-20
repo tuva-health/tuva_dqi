@@ -244,6 +244,7 @@ def create_test_modal_content(row):
                     n_clicks=0,
                 ),
                 html.Div(id="copy-query-output"),
+                dcc.Store(id="clipboard-data"),
             ]
         ),
         html.Hr(),
@@ -1377,19 +1378,26 @@ def toggle_failing_test_modal(btn_clicks, json_data, is_open):
     if not any(btn_clicks) or not ctx.triggered:
         return is_open, dash.no_update
 
+    # If json_data is None, it means the component doesn't exist
+    if json_data is None:
+        return True, html.P("No failing test data available.")
+
     # Find which button was clicked
     triggered_id = ctx.triggered_id
     if triggered_id and "index" in triggered_id:
         clicked_index = triggered_id["index"]
 
-        # Get the data for the clicked row
-        data = json.loads(json_data)
-        row = data[clicked_index]
+        try:
+            # Get the data for the clicked row
+            data = json.loads(json_data)
+            row = data[clicked_index]
 
-        # Create the modal content
-        modal_content = create_test_modal_content(row)
+            # Create the modal content
+            modal_content = create_test_modal_content(row)
 
-        return True, modal_content
+            return True, modal_content
+        except Exception as e:
+            return True, html.P(f"Error loading test details: {str(e)}")
 
     return is_open, dash.no_update
 
@@ -1438,46 +1446,60 @@ def close_modal(close_clicks, is_open):
     return is_open
 
 
-# Copy button feedback
 @callback(
-    Output("copy-query-output", "children"),
+    Output("clipboard-data", "data"),
     Input("copy-query-button", "n_clicks"),
     State("query-text", "value"),
     prevent_initial_call=True,
 )
-def copy_to_clipboard(n_clicks, query_text):
+def store_clipboard_data(n_clicks, query_text):
     if n_clicks > 0:
-        # Return a confirmation message
-        return html.Div(
-            [
-                html.Span(
-                    "Copied to clipboard!",
-                    style={"color": "green", "margin-top": "5px"},
-                ),
-                # Add a hidden div with JavaScript to copy to clipboard
-                html.Div(
-                    id="clipboard-js",
-                    children=[],
-                    style={"display": "none"},
-                    # This will execute when the component is rendered
-                    **{"data-clipboard": query_text},
-                ),
-            ]
+        return query_text
+    return dash.no_update
+
+# Second callback to show the success message
+@callback(
+    Output("copy-query-output", "children"),
+    Input("clipboard-data", "data"),
+    prevent_initial_call=True,
+)
+def show_copy_message(data):
+    if data:
+        return html.Span(
+            "Copied to clipboard!",
+            style={"color": "green", "margin-top": "5px"},
         )
     return dash.no_update
 
 
 dash.clientside_callback(
     """
-    function(divProps) {
-        if(divProps && divProps['data-clipboard']) {
-            navigator.clipboard.writeText(divProps['data-clipboard']);
+    function(data) {
+        if (data) {
+            // Create a temporary textarea element
+            const textarea = document.createElement('textarea');
+            textarea.value = data;
+
+            // Make it invisible
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = 0;
+
+            // Add it to the document
+            document.body.appendChild(textarea);
+
+            // Select and copy
+            textarea.select();
+            document.execCommand('copy');
+
+            // Clean up
+            document.body.removeChild(textarea);
         }
         return window.dash_clientside.no_update;
     }
     """,
-    Output("clipboard-js", "children"),
-    Input("clipboard-js", "data-clipboard"),
+    Output("clipboard-data", "data", allow_duplicate=True),
+    Input("clipboard-data", "data"),
+    prevent_initial_call=True,
 )
 
 
