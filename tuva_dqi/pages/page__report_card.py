@@ -6,6 +6,7 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 from dash import Input, Output, callback, dcc, html
+
 from pages.charts import create_chart
 from pages.db import get_db_connection
 from pages.services import (
@@ -15,7 +16,7 @@ from pages.services import (
     get_last_test_run_time,
     get_mart_test_summary,
     get_outstanding_errors,
-    get_quality_dimension_summary,
+    get_test_category_summary,
     get_tests_completed_count,
 )
 
@@ -237,10 +238,10 @@ layout = html.Div(
             ],
             className="mb-4",
         ),
-        # Quality Dimension Summary
+        # Test Category Summary
         dbc.Card(
             [
-                dbc.CardHeader(html.H3("Quality Dimension Summary", className="m-0")),
+                dbc.CardHeader(html.H3("Test Category Summary", className="m-0")),
                 dbc.CardBody([html.Div(id="report-quality-dimensions")]),
             ],
             className="mb-4 page-break-before",
@@ -337,7 +338,7 @@ def generate_report(n_clicks, container_id):
     conn = get_db_connection()
     passing_tests = pd.read_sql_query(
         """
-        SELECT COUNT(*) as count FROM test_results WHERE STATUS = 'pass' AND CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
+        SELECT COUNT(*) as count FROM test_results WHERE STATUS = 'pass'
     """,
         conn,
     ).iloc[0]["count"]
@@ -347,7 +348,7 @@ def generate_report(n_clicks, container_id):
     database_name = (
         pd.read_sql_query(
             """
-        SELECT DISTINCT DATABASE_NAME FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5 LIMIT 1
+        SELECT DISTINCT DATABASE_NAME FROM test_results LIMIT 1
     """,
             conn,
         ).iloc[0]["DATABASE_NAME"]
@@ -452,18 +453,18 @@ def generate_report(n_clicks, container_id):
 
     mart_status_content.append(mart_table)
 
-    # Generate Quality Dimension Summary section
-    quality_dimensions = get_quality_dimension_summary()
+    # Generate Test Category Summary section
+    quality_dimensions = get_test_category_summary()
 
     if not quality_dimensions.empty:
-        # Create a bar chart for quality dimensions
+        # Create a bar chart for test categories
         fig = px.bar(
             quality_dimensions,
-            x="QUALITY_DIMENSION",
+            x="TEST_CATEGORY",
             y=["passing_tests", "failing_tests"],
-            title="Tests by Quality Dimension",
+            title="Tests by Test Category",
             labels={
-                "QUALITY_DIMENSION": "Quality Dimension",
+                "QUALITY_DIMENSION": "Test Category",
                 "value": "Number of Tests",
                 "variable": "Status",
             },
@@ -478,11 +479,11 @@ def generate_report(n_clicks, container_id):
             ),
         )
 
-        # Create a table for quality dimensions
+        # Create a table for test categories
         qd_table_header = html.Thead(
             html.Tr(
                 [
-                    html.Th("Quality Dimension", className="text-start"),
+                    html.Th("Test Category", className="text-start"),
                     html.Th("Total Tests", className="text-center"),
                     html.Th("Passing Tests", className="text-center"),
                     html.Th("Failing Tests", className="text-center"),
@@ -496,9 +497,7 @@ def generate_report(n_clicks, container_id):
             qd_table_rows.append(
                 html.Tr(
                     [
-                        html.Td(
-                            row["QUALITY_DIMENSION"].title(), className="text-start"
-                        ),
+                        html.Td(row["TEST_CATEGORY"].title(), className="text-start"),
                         html.Td(f"{row['total_tests']:,}", className="text-center"),
                         html.Td(f"{row['passing_tests']:,}", className="text-center"),
                         html.Td(f"{row['failing_tests']:,}", className="text-center"),
@@ -533,7 +532,7 @@ def generate_report(n_clicks, container_id):
             [dcc.Graph(figure=fig, config={"displayModeBar": False}), qd_table]
         )
     else:
-        quality_dimensions_content = html.P("No quality dimension data available.")
+        quality_dimensions_content = html.P("No test category data available.")
 
     # Generate Critical Issues section
     critical_issues = get_outstanding_errors()

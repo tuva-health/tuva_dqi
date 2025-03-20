@@ -1,5 +1,6 @@
 import pandas as pd
 from pandas import DataFrame
+
 from pages.db import get_db_connection
 
 
@@ -72,7 +73,7 @@ def get_chart_filter_values(graph_name) -> list:
 def get_data_from_test_results(limit=100) -> DataFrame:
     conn = get_db_connection()
     df = pd.read_sql_query(
-        f"SELECT * FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5 LIMIT {limit}",
+        f"SELECT * FROM test_results LIMIT {limit}",
         conn,
     )
     conn.close()
@@ -138,12 +139,12 @@ def get_tests_completed_count() -> int:
     conn = get_db_connection()
     count = pd.read_sql_query(
         """
-        SELECT COUNT(*) as count FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
+        SELECT COUNT(*) as count FROM test_results
     """,
         conn,
     ).iloc[0]["count"]
     conn.close()
-    return count
+    return int(count)
 
 
 # services.py
@@ -151,7 +152,7 @@ def get_last_test_run_time():
     conn = get_db_connection()
     last_time = pd.read_sql_query(
         """
-        SELECT MAX(GENERATED_AT) as last_run FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
+        SELECT MAX(GENERATED_AT) as last_run FROM test_results
     """,
         conn,
     ).iloc[0]["last_run"]
@@ -237,7 +238,6 @@ def get_outstanding_errors() -> DataFrame:
             FLAG_FINANCIAL_PMPM, FLAG_QUALITY_MEASURES, FLAG_READMISSION
         FROM test_results 
         WHERE STATUS != 'pass' AND SEVERITY_LEVEL IS NOT NULL
-        AND CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
         ORDER BY SEVERITY_LEVEL ASC
     """,
         conn,
@@ -253,7 +253,7 @@ def get_data_availability() -> dict:
     # Check for test results
     test_results_count = pd.read_sql_query(
         """
-        SELECT COUNT(*) as count FROM test_results WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
+        SELECT COUNT(*) as count FROM test_results
     """,
         conn,
     ).iloc[0]["count"]
@@ -320,7 +320,7 @@ def get_all_tests() -> DataFrame:
             FLAG_TUVA_CHRONIC_CONDITIONS, FLAG_CMS_HCCS, FLAG_ED_CLASSIFICATION,
             FLAG_FINANCIAL_PMPM, FLAG_QUALITY_MEASURES, FLAG_READMISSION
         FROM test_results 
-        WHERE CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
+       
         ORDER BY SEVERITY_LEVEL ASC, STATUS DESC, TABLE_NAME ASC
     """,
         conn,
@@ -365,10 +365,20 @@ def get_mart_test_summary() -> list:
                 SUM(CASE WHEN STATUS != 'pass' AND CAST(SEVERITY_LEVEL AS INTEGER) = 5 THEN 1 ELSE 0 END) as sev5_fails
             FROM test_results 
             WHERE {flag_column} = 1
-            AND CAST(SEVERITY_LEVEL AS INTEGER) BETWEEN 1 AND 5
         """
 
         result = pd.read_sql_query(query, conn).iloc[0]
+
+        # Convert None values to 0 for numeric fields
+        sev1_fails = 0 if result["sev1_fails"] is None else int(result["sev1_fails"])
+        sev2_fails = 0 if result["sev2_fails"] is None else int(result["sev2_fails"])
+        sev3_fails = 0 if result["sev3_fails"] is None else int(result["sev3_fails"])
+        sev4_fails = 0 if result["sev4_fails"] is None else int(result["sev4_fails"])
+        sev5_fails = 0 if result["sev5_fails"] is None else int(result["sev5_fails"])
+        total_tests = 0 if result["total_tests"] is None else int(result["total_tests"])
+        passing_tests = (
+            0 if result["passing_tests"] is None else int(result["passing_tests"])
+        )
 
         # Format the display name
         display_name = (
@@ -382,19 +392,17 @@ def get_mart_test_summary() -> list:
 
         # Calculate passing percentage
         passing_pct = 0
-        if result["total_tests"] > 0:
-            passing_pct = (result["passing_tests"] / result["total_tests"] * 100).round(
-                1
-            )
+        if total_tests > 0:
+            passing_pct = round(passing_tests / total_tests * 100, 1)
 
         # Determine status based on severity counts
-        if result["sev1_fails"] > 0:
+        if sev1_fails > 0:
             status = "Not Usable"
             status_color = "danger"
-        elif result["sev2_fails"] > 0:
+        elif sev2_fails > 0:
             status = "Not Usable"
             status_color = "danger"
-        elif result["sev3_fails"] > 0:
+        elif sev3_fails > 0:
             status = "Use with Caution"
             status_color = "warning"
         else:
@@ -406,14 +414,14 @@ def get_mart_test_summary() -> list:
             {
                 "mart": mart,
                 "display_name": display_name,
-                "total_tests": result["total_tests"],
-                "passing_tests": result["passing_tests"],
+                "total_tests": total_tests,
+                "passing_tests": passing_tests,
                 "passing_percentage": passing_pct,
-                "sev1_fails": result["sev1_fails"],
-                "sev2_fails": result["sev2_fails"],
-                "sev3_fails": result["sev3_fails"],
-                "sev4_fails": result["sev4_fails"],
-                "sev5_fails": result["sev5_fails"],
+                "sev1_fails": sev1_fails,
+                "sev2_fails": sev2_fails,
+                "sev3_fails": sev3_fails,
+                "sev4_fails": sev4_fails,
+                "sev5_fails": sev5_fails,
                 "status": status,
                 "status_color": status_color,
             }
@@ -423,21 +431,21 @@ def get_mart_test_summary() -> list:
     return mart_summaries
 
 
-def get_quality_dimension_summary() -> DataFrame:
-    """Get a summary of tests by quality dimension."""
+def get_test_category_summary() -> DataFrame:
+    """Get a summary of tests by Test Category."""
     conn = get_db_connection()
 
-    # Get counts by quality dimension and status
+    # Get counts by Test Category and status
     query = """
         SELECT 
-            QUALITY_DIMENSION,
+            TEST_CATEGORY,
             COUNT(*) as total_tests,
             SUM(CASE WHEN STATUS = 'pass' THEN 1 ELSE 0 END) as passing_tests,
             SUM(CASE WHEN STATUS != 'pass' THEN 1 ELSE 0 END) as failing_tests
         FROM test_results 
-        WHERE QUALITY_DIMENSION IS NOT NULL AND QUALITY_DIMENSION != ''
-        GROUP BY QUALITY_DIMENSION
-        ORDER BY QUALITY_DIMENSION
+        WHERE TEST_CATEGORY IS NOT NULL AND TEST_CATEGORY != ''
+        GROUP BY TEST_CATEGORY
+        ORDER BY TEST_CATEGORY
     """
 
     df = pd.read_sql_query(query, conn)
@@ -456,6 +464,35 @@ def get_mart_tests(mart_name, status: str = None) -> DataFrame:
     """Get tests for a specific mart."""
     conn = get_db_connection()
     flag_column = f"FLAG_{mart_name}"
+
+    # Check if the column exists
+    column_exists = False
+    try:
+        # Try to get column info
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(test_results)")
+        columns = cursor.fetchall()
+        column_exists = any(col[1] == flag_column for col in columns)
+    except Exception:
+        pass
+
+    # If column doesn't exist, return empty DataFrame
+    if not column_exists:
+        return pd.DataFrame(
+            columns=[
+                "UNIQUE_ID",
+                "SEVERITY_LEVEL",
+                "DATABASE_NAME",
+                "TABLE_NAME",
+                "TEST_COLUMN_NAME",
+                "TEST_ORIGINAL_NAME",
+                "TEST_TYPE",
+                "TEST_SUB_TYPE",
+                "TEST_DESCRIPTION",
+                "TEST_RESULTS_QUERY",
+                "STATUS",
+            ]
+        )
 
     query = f"""
         SELECT 

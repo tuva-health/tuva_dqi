@@ -91,10 +91,10 @@ dq_framework_overview = html.Div(
     ]
 )
 
-# Data Quality Dimensions
+# Data Test Categories
 dq_dimensions = html.Div(
     [
-        html.H2("Quality Dimensions", className="mb-4"),
+        html.H2("Test Categories", className="mb-4"),
         dbc.Row(
             [
                 dbc.Col(
@@ -385,9 +385,7 @@ layout = html.Div(
                             label="Framework Overview",
                             tab_id="tab-1",
                         ),
-                        dbc.Tab(
-                            dq_dimensions, label="Quality Dimensions", tab_id="tab-2"
-                        ),
+                        dbc.Tab(dq_dimensions, label="Test Categories", tab_id="tab-2"),
                         dbc.Tab(dq_grading, label="Grading System", tab_id="tab-3"),
                     ],
                     id="tabs",

@@ -3,6 +3,7 @@ import os
 import dash
 import dash_bootstrap_components as dbc
 from dash import Dash, html
+
 from pages.components import get_footer_component, get_navbar_component
 from pages.db import init_db
 

@@ -7,6 +7,7 @@ import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import ALL, Input, Output, State, callback, ctx, dash_table, dcc, html
+
 from pages.charts import create_chart
 from pages.db import get_db_connection
 from pages.services import (
@@ -268,8 +269,26 @@ def parse_and_display_csv_file_contents_from_upload(contents, filename):
                 # This is a chart data file
                 conn = get_db_connection()
 
-                # Use pandas to_sql with 'replace' to overwrite existing data
-                df.to_sql("chart_data", conn, if_exists="replace", index=False)
+                # Get the schema columns for chart_data
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA table_info(chart_data)")
+                schema_columns = [row[1] for row in cursor.fetchall()]
+
+                # Filter DataFrame to only include columns in the schema
+                valid_columns = [col for col in df.columns if col in schema_columns]
+                filtered_df = df[valid_columns]
+
+                # Drop all existing data
+                cursor.execute("DELETE FROM chart_data")
+
+                # Insert data using parameterized queries
+                for _, row in filtered_df.iterrows():
+                    columns = ", ".join(valid_columns)
+                    placeholders = ", ".join(["?"] * len(valid_columns))
+                    sql = f"INSERT INTO chart_data ({columns}) VALUES ({placeholders})"
+                    cursor.execute(sql, tuple(row[valid_columns]))
+
+                conn.commit()
                 conn.close()
 
                 return html.Div(
@@ -277,12 +296,17 @@ def parse_and_display_csv_file_contents_from_upload(contents, filename):
                         html.H5(f"Uploaded Chart Data: {filename}"),
                         html.Hr(),
                         html.P(
-                            f"{len(df)} data points imported successfully to database."
+                            f"{len(filtered_df)} data points imported successfully to database."
                         ),
-                        html.P(f'Detected {df["GRAPH_NAME"].nunique()} unique charts.'),
+                        html.P(
+                            f'Detected {filtered_df["GRAPH_NAME"].nunique()} unique charts.'
+                        ),
+                        html.P(
+                            f"Used {len(valid_columns)} of {len(df.columns)} columns that match the schema."
+                        ),
                         dash_table.DataTable(
-                            data=df.head(10).to_dict("records"),
-                            columns=[{"name": i, "id": i} for i in df.columns],
+                            data=filtered_df.head(10).to_dict("records"),
+                            columns=[{"name": i, "id": i} for i in valid_columns],
                             page_size=10,
                             style_table={"overflowX": "auto"},
                             style_cell={
@@ -296,8 +320,41 @@ def parse_and_display_csv_file_contents_from_upload(contents, filename):
             elif "UNIQUE_ID" in df.columns and "TEST_NAME" in df.columns:
                 # This is a test results file
                 conn = get_db_connection()
-                # Use pandas to_sql with 'replace' to overwrite existing data
-                df.to_sql("test_results", conn, if_exists="replace", index=False)
+
+                # Get the schema columns for test_results
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA table_info(test_results)")
+                schema_columns = [row[1] for row in cursor.fetchall()]
+
+                # Filter DataFrame to only include columns in the schema
+                valid_columns = [col for col in df.columns if col in schema_columns]
+                filtered_df = df[valid_columns]
+
+                # Filter records where test severity level is between 1 and 5
+                if "SEVERITY_LEVEL" in filtered_df.columns:
+                    original_count = len(filtered_df)
+                    filtered_df = filtered_df[
+                        (filtered_df["SEVERITY_LEVEL"] >= 1)
+                        & (filtered_df["SEVERITY_LEVEL"] <= 5)
+                    ]
+                    filtered_count = len(filtered_df)
+                    severity_message = f"Filtered out {original_count - filtered_count} records with severity level outside range 1-5."
+                else:
+                    severity_message = "Warning: SEVERITY_LEVEL column not found. All records imported."
+
+                # Drop all existing data
+                cursor.execute("DELETE FROM test_results")
+
+                # Insert data using parameterized queries
+                for _, row in filtered_df.iterrows():
+                    columns = ", ".join(valid_columns)
+                    placeholders = ", ".join(["?"] * len(valid_columns))
+                    sql = (
+                        f"INSERT INTO test_results ({columns}) VALUES ({placeholders})"
+                    )
+                    cursor.execute(sql, tuple(row[valid_columns]))
+
+                conn.commit()
                 conn.close()
 
                 return html.Div(
@@ -305,11 +362,15 @@ def parse_and_display_csv_file_contents_from_upload(contents, filename):
                         html.H5(f"Uploaded Test Results: {filename}"),
                         html.Hr(),
                         html.P(
-                            f"{len(df)} test results imported successfully to database."
+                            f"{len(filtered_df)} test results imported successfully to database."
+                        ),
+                        html.P(severity_message),
+                        html.P(
+                            f"Used {len(valid_columns)} of {len(df.columns)} columns that match the schema."
                         ),
                         dash_table.DataTable(
-                            data=df.head(10).to_dict("records"),
-                            columns=[{"name": i, "id": i} for i in df.columns],
+                            data=filtered_df.head(10).to_dict("records"),
+                            columns=[{"name": i, "id": i} for i in valid_columns],
                             page_size=10,
                             style_table={"overflowX": "auto"},
                             style_cell={
@@ -789,6 +850,7 @@ def update_mart_status(n_clicks, upload_output):
                 .replace("Cms", "CMS")
                 .replace("Ed", "ED")
                 .replace("Pmpm", "PMPM")
+                .replace("Hcc", "HCC")
             )
 
             # Choose icon and color based on status
