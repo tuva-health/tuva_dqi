@@ -450,7 +450,7 @@ class TestGetMartTestSummary:
         assert all(all(field in mart for field in expected_fields) for mart in result)
 
 
-class TestGetQualityDimensionSummary:
+class TestGetTestCategorySummary:
     def test_returns_dataframe(self, mock_get_db_connection, sample_test_results):
         """Test that get_quality_dimension_summary returns a DataFrame."""
         result = get_test_category_summary()
@@ -462,7 +462,7 @@ class TestGetQualityDimensionSummary:
         """Test that get_quality_dimension_summary includes expected columns."""
         result = get_test_category_summary()
         expected_columns = [
-            "QUALITY_DIMENSION",
+            "TEST_CATEGORY",
             "total_tests",
             "passing_tests",
             "failing_tests",
@@ -482,7 +482,7 @@ class TestGetQualityDimensionSummary:
 
         result = get_test_category_summary()
         # We should have 2/3 passing tests for validity
-        validity_row = result[result["QUALITY_DIMENSION"] == "validity"]
+        validity_row = result[result["TEST_CATEGORY"] == "validity"]
         assert validity_row["passing_tests"].iloc[0] == 2
         assert validity_row["failing_tests"].iloc[0] == 1
         assert validity_row["passing_percentage"].iloc[0] == 66.7  # 2/3 = 66.7%
