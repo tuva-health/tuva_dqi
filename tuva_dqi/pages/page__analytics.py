@@ -10,7 +10,7 @@ from dash import ALL, Input, Output, State, callback, ctx, dash_table, dcc, html
 
 from db import get_db_connection
 from pages.charts import create_chart
-from pages.services import (
+from services.dqi_service import (
     get_available_charts,
     get_chart_filter_values,
     get_data_availability,

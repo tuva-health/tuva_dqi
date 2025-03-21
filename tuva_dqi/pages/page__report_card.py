@@ -9,7 +9,7 @@ from dash import Input, Output, callback, dcc, html
 
 from db import get_db_connection
 from pages.charts import create_chart
-from pages.services import (
+from services.dqi_service import (
     get_all_tests,
     get_available_charts,
     get_data_quality_grade,

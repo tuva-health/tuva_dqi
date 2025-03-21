@@ -1,6 +1,6 @@
 import pandas as pd
 
-from pages.services import (
+from services.dqi_service import (
     get_all_tests,
     get_available_charts,
     get_chart_data,

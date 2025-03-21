@@ -134,7 +134,7 @@ def get_data_quality_grade() -> str:
         return "A"
 
 
-# services.py
+# dqi_service.py
 def get_tests_completed_count() -> int:
     conn = get_db_connection()
     count = pd.read_sql_query(
@@ -147,7 +147,7 @@ def get_tests_completed_count() -> int:
     return int(count)
 
 
-# services.py
+# dqi_service.py
 def get_last_test_run_time():
     conn = get_db_connection()
     last_time = pd.read_sql_query(

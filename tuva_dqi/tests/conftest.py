@@ -294,6 +294,6 @@ def mock_get_db_connection(monkeypatch, test_db_connection):
     # Import the module that contains get_db_connection
 
     # Patch the function
-    monkeypatch.setattr("pages.services.get_db_connection", mock_connection)
+    monkeypatch.setattr("services.dqi_service.get_db_connection", mock_connection)
 
     return mock_connection

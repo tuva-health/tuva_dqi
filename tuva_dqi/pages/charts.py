@@ -3,7 +3,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from dash import dcc, html
 
-from pages.services import get_chart_data
+from services.dqi_service import get_chart_data
 
 
 def create_chart(graph_name, chart_filter=None):
