@@ -2,10 +2,12 @@ import base64
 import io
 import json
 import traceback
+from datetime import datetime, timezone
 
 import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
+import pytz
 from dash import ALL, Input, Output, State, callback, ctx, dash_table, dcc, html
 
 from db import get_db_connection
@@ -778,11 +780,6 @@ def update_last_test_run(n_clicks, upload_output):
     try:
         last_run = get_last_test_run_time()
         if last_run and last_run != "No data available":
-            # Format the timestamp for better readability
-            from datetime import datetime, timezone
-
-            import pytz  # You'll need to install this package if not already installed
-
             try:
                 # Parse the timestamp (assuming it's in UTC)
                 dt = datetime.strptime(last_run, "%Y-%m-%d %H:%M:%S")
