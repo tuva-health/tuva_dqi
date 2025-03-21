@@ -1,4 +1,8 @@
-.PHONY: lint format run clean
+.PHONY: lint format run clean error
+
+error:
+	@echo "Available commands: lint, format, run, clean, error"
+	@exit 2
 
 lint:
 	ruff check .
