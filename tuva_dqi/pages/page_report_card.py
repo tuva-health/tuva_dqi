@@ -23,6 +23,10 @@ from services.dqi_service import (
 # Register the page
 dash.register_page(__name__, path="/report-card", name="Report Card")
 
+#
+# Layout
+#
+
 # Layout for the report card page
 layout = html.Div(
     [
@@ -286,6 +290,10 @@ layout = html.Div(
     ],
     id="report-card-container",
 )
+
+#
+# Callbacks
+#
 
 
 # Callback to populate the report data

@@ -411,6 +411,10 @@ def parse_and_display_csv_file_contents_from_upload(contents, filename):
         )
 
 
+#
+# Layout
+#
+
 # Layout with Bootstrap cards/tiles
 layout = html.Div(
     [
@@ -657,6 +661,10 @@ layout = html.Div(
     ],
     className="dashboard-container",
 )
+
+#
+# Callbacks
+#
 
 
 # Callback for the file upload

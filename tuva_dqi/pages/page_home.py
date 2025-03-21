@@ -500,6 +500,10 @@ dq_grading = html.Div(
     ]
 )
 
+#
+# Layout
+#
+
 # Main layout
 layout = html.Div(
     [
