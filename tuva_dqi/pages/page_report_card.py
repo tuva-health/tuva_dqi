@@ -38,18 +38,7 @@ layout = html.Div(
                         html.H1("Data Quality Report Card", className="report-title"),
                         html.P(id="report-generation-date", className="text-muted"),
                     ],
-                    width=9,
-                ),
-                dbc.Col(
-                    [
-                        dbc.Button(
-                            [html.I(className="fas fa-print me-2"), "Print Report"],
-                            id="report-print-button",
-                            color="primary",
-                            className="float-end",
-                        )
-                    ],
-                    width=3,
+                    width=12,
                 ),
             ],
             className="mb-4 d-print-none",
@@ -274,17 +263,6 @@ layout = html.Div(
             ],
             className="mb-4 page-break-before",
         ),
-        # Print JavaScript
-        html.Div(
-            [
-                html.Script("""
-            document.getElementById('report-print-button').addEventListener('click', function() {
-                window.print();
-            });
-        """)
-            ],
-            id="report-print-script",
-        ),
         # Hidden div to store data
         html.Div(id="report-hidden-data", style={"display": "none"}),
     ],
@@ -317,11 +295,10 @@ layout = html.Div(
         Output("report-hidden-data", "children"),
     ],
     [
-        Input("report-print-button", "n_clicks"),
         Input("report-card-container", "id"),
     ],  # Add this to trigger on page load
 )
-def generate_report(n_clicks, container_id):
+def generate_report(container_id):
     # Current date and time
     now = datetime.now()
     current_date = now.strftime("%B %d, %Y at %I:%M %p")
