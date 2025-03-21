@@ -1,7 +1,7 @@
 import pandas as pd
 from pandas import DataFrame
 
-from pages.db import get_db_connection
+from db import get_db_connection
 
 
 def get_available_charts() -> DataFrame:

@@ -7,8 +7,8 @@ import pandas as pd
 import plotly.express as px
 from dash import Input, Output, callback, dcc, html
 
+from db import get_db_connection
 from pages.charts import create_chart
-from pages.db import get_db_connection
 from pages.services import (
     get_all_tests,
     get_available_charts,

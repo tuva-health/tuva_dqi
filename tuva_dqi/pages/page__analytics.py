@@ -8,8 +8,8 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import ALL, Input, Output, State, callback, ctx, dash_table, dcc, html
 
+from db import get_db_connection
 from pages.charts import create_chart
-from pages.db import get_db_connection
 from pages.services import (
     get_available_charts,
     get_chart_filter_values,
