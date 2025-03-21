@@ -1,0 +1,589 @@
+/* TUVA Health Branding Colors  */
+:root {
+  --tuva-dark-blue: #0a3f5c;
+  --tuva-yellow: #fdcb0a;
+  --tuva-light-blue: #64b0e1;
+  --tuva-blue: #1d7aa9;
+  --tuva-teal: #0fb594;
+  --tuva-light-gray: #F5F5F5;
+  --tuva-gray: #6C757D;
+  --tuva-white: #FFFFFF;
+  --tuva-black: #333333;
+}
+
+/* Override Bootstrap primary color */
+.bg-primary {
+  background-color: var(--tuva-blue) !important;
+}
+
+/* General styling */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  color: var(--tuva-black);
+  line-height: 1.6;
+}
+
+/* Navbar styling */
+.navbar {
+  background-color: var(--tuva-white) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 0.5rem 2rem;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  color: var(--tuva-dark-blue) !important;
+}
+
+.navbar-brand img {
+  height: 40px;
+  margin-right: 10px;
+}
+
+.nav-link {
+  color: var(--tuva-dark-blue) !important;
+  font-weight: 500;
+  margin: 0 10px;
+}
+
+.nav-link:hover {
+  color: var(--tuva-blue) !important;
+}
+
+/* Card styling */
+.card {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: none;
+  margin-bottom: 20px;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  border-top-left-radius: 8px !important;
+  border-top-right-radius: 8px !important;
+  font-weight: 600;
+  background-color: var(--tuva-blue) !important;
+  color: var(--tuva-white) !important;
+}
+
+/* Button styling */
+.btn-primary {
+  background-color: var(--tuva-blue) !important;
+  border-color: var(--tuva-blue) !important;
+  font-weight: 500;
+  border-radius: 25px;
+  padding: 0.5rem 1.5rem;
+}
+
+.btn-primary:hover {
+  background-color: var(--tuva-dark-blue) !important;
+  border-color: var(--tuva-dark-blue) !important;
+}
+
+.btn-secondary {
+  background-color: var(--tuva-white) !important;
+  border-color: var(--tuva-dark-blue) !important;
+  color: var(--tuva-dark-blue) !important;
+  font-weight: 500;
+  border-radius: 25px;
+  padding: 0.5rem 1.5rem;
+}
+
+.btn-secondary:hover {
+  background-color: #f8f9fa !important;
+}
+
+.btn-warning, .btn-demo {
+  background-color: var(--tuva-yellow) !important;
+  border-color: var(--tuva-yellow) !important;
+  color: var(--tuva-dark-blue) !important;
+  font-weight: 600;
+  border-radius: 25px;
+  padding: 0.5rem 1.5rem;
+}
+
+.btn-warning:hover, .btn-demo:hover {
+  background-color: #e6bc00 !important;
+  border-color: #e6bc00 !important;
+}
+
+.btn-info {
+  background-color: var(--tuva-light-blue) !important;
+  border-color: var(--tuva-light-blue) !important;
+}
+
+.btn-success {
+  background-color: var(--tuva-teal) !important;
+  border-color: var(--tuva-teal) !important;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  color: var(--tuva-dark-blue);
+}
+
+.display-4 {
+  font-weight: 700;
+}
+
+/* Dashboard specific styles */
+.severity-1 {
+  background-color: #ffcccc;
+}
+
+.severity-2 {
+  background-color: #ffe6cc;
+}
+
+.severity-3 {
+  background-color: #ffffcc;
+}
+
+.severity-4 {
+  background-color: #e6ffcc;
+}
+
+.severity-5 {
+  background-color: #ccffcc;
+}
+
+/* File upload area */
+.upload-area {
+  border: 2px dashed var(--tuva-blue);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  background-color: rgba(29, 122, 169, 0.05);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.upload-text {
+  display: inline-block;
+  text-align: center;
+  width: 100%;
+}
+
+.upload-link {
+  color: var(--tuva-blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.upload-link:hover {
+  color: var(--tuva-dark-blue);
+}
+
+/* Page container */
+.page-container {
+  padding: 2rem 0;
+}
+
+/* Footer */
+.footer {
+  background-color: var(--tuva-dark-blue);
+  color: var(--tuva-white);
+  padding: 2rem 0;
+  margin-top: 3rem;
+}
+
+/* Data quality grade styling */
+.grade-a {
+  color: var(--tuva-teal);
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.grade-b {
+  color: var(--tuva-light-blue);
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.grade-c, .grade-d {
+  color: var(--tuva-yellow);
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.grade-f {
+  color: #dc3545;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+/* Data mart status icons */
+.mart-status-card {
+  text-align: center;
+  padding: 1.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mart-status-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.mart-status-card:hover .mart-icon {
+  transform: scale(1.1);
+}
+
+.mart-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Tabs styling */
+.nav-tabs .nav-link {
+  color: var(--tuva-dark-blue);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--tuva-blue);
+  border-bottom: 3px solid var(--tuva-blue);
+  background-color: transparent;
+}
+
+.tab-content {
+  padding: 2rem 0;
+}
+
+/* Hero section */
+.hero-section {
+  background-color: var(--tuva-light-gray);
+  padding: 3rem 0;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.hero-title {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: var(--tuva-gray);
+  max-width: 800px;
+  margin: 0 auto 2rem auto;
+}
+
+/* Dashboard container with padding */
+.dashboard-container {
+  padding: 0 2rem;
+}
+
+/* Clickable card styling */
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.clickable-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.clickable-card:hover .mart-icon {
+  transform: scale(1.1);
+}
+
+.clickable-card:hover::after {
+  content: "Click for details";
+  display: block;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--tuva-blue);
+  margin-top: 0.5rem;
+}
+
+/* Style for the view tests button */
+.mart-status-card .btn-link {
+  color: var(--tuva-blue);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.mart-status-card .btn-link:hover {
+  text-decoration: underline;
+  color: var(--tuva-dark-blue);
+}
+
+/* Table cell word wrapping */
+.table-cell {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  white-space: normal;
+  padding: 8px;
+}
+
+/* Passing test row styling */
+.passing-test-row {
+  background-color: rgba(248, 249, 250, 0.7) !important;
+  border-left-width: 5px;
+  border-left-style: solid;
+}
+
+.passing-severity-1 {
+  border-left-color: #dc3545;
+}
+
+.passing-severity-2 {
+  border-left-color: #fd7e14;
+}
+
+.passing-severity-3 {
+  border-left-color: var(--tuva-yellow);
+}
+
+.passing-severity-4 {
+  border-left-color: var(--tuva-teal);
+}
+
+.passing-severity-5 {
+  border-left-color: var(--tuva-teal);
+}
+
+.passing-severity-0 {
+  border-left-color: var(--tuva-gray);
+}
+
+/* Future-proofing for additional Bootstrap components */
+.text-primary {
+  color: var(--tuva-blue) !important;
+}
+
+.text-secondary {
+  color: var(--tuva-dark-blue) !important;
+}
+
+.text-success {
+  color: var(--tuva-teal) !important;
+}
+
+.text-info {
+  color: var(--tuva-light-blue) !important;
+}
+
+.text-warning {
+  color: var(--tuva-yellow) !important;
+}
+
+.bg-secondary {
+  background-color: var(--tuva-dark-blue) !important;
+}
+
+.bg-success {
+  background-color: var(--tuva-teal) !important;
+}
+
+.bg-info {
+  background-color: var(--tuva-light-blue) !important;
+}
+
+.bg-warning {
+  background-color: var(--tuva-yellow) !important;
+}
+
+/* Links */
+a {
+  color: var(--tuva-blue);
+}
+
+a:hover {
+  color: var(--tuva-dark-blue);
+}
+
+/* Border colors */
+.border-primary {
+  border-color: var(--tuva-blue) !important;
+}
+
+.border-secondary {
+  border-color: var(--tuva-dark-blue) !important;
+}
+
+.border-info {
+  border-color: var(--tuva-light-blue) !important;
+}
+
+.border-warning {
+  border-color: var(--tuva-yellow) !important;
+}
+
+.border-success {
+  border-color: var(--tuva-teal) !important;
+}
+
+@media print {
+    body {
+        font-size: 12px;
+    }
+
+    .d-print-none {
+        display: none !important;
+    }
+
+    .d-print-block {
+        display: block !important;
+    }
+
+    .container-fluid {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .card {
+        border: 1px solid #ddd;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+    }
+
+    .card-header {
+        background-color: #f8f9fa !important;
+        color: #000 !important;
+        border-bottom: 1px solid #ddd;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        page-break-inside: avoid;
+    }
+
+    th, td {
+        padding: 6px;
+        border: 1px solid #ddd;
+    }
+
+    /* Force background colors to print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Add page breaks before major sections */
+    .page-break-before {
+        page-break-before: always;
+    }
+
+    /* Ensure charts print properly */
+    .js-plotly-plot {
+        page-break-inside: avoid;
+    }
+
+    /* Grade styling */
+    .grade-a, .grade-b, .grade-c, .grade-d, .grade-f {
+        color: inherit !important;
+    }
+}
+
+/* Report specific styles */
+.report-title {
+    font-weight: 700;
+}
+
+.mart-status-table th,
+.quality-dimension-table th,
+.critical-issues-table th,
+.all-tests-table th {
+    background-color: #f8f9fa;
+}
+
+/* Table styling */
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Add page break classes */
+@media print {
+    .page-break-before {
+        page-break-before: always;
+    }
+
+    .page-break-after {
+        page-break-after: always;
+    }
+
+    /* Make sure each major section starts on a new page */
+    #report-quality-dimensions,
+    #report-critical-issues,
+    #report-all-tests,
+    #report-visualizations {
+        page-break-before: always;
+    }
+}
+@media print {
+    /* Ensure page breaks don't happen in the middle of tables */
+    table {
+        page-break-inside: avoid;
+    }
+
+    /* Make sure text is black in print for better contrast */
+    body {
+        color: black !important;
+    }
+
+    /* Ensure badges are visible in print */
+    .badge {
+        border: 1px solid #000 !important;
+    }
+
+    /* Adjust card margins for print */
+    .card {
+        margin-bottom: 30px !important;
+    }
+
+    /* Remove hover effects in print */
+    .card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Ensure report sections have proper spacing */
+    #report-card-container .card {
+        margin-bottom: 40px !important;
+    }
+}
+
+/* Report card specific styling */
+#report-card-container .card {
+    transition: none;
+}
+
+#report-card-container .card:hover {
+    transform: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+@media print {
+    .js-plotly-plot {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        max-width: 100%;
+        max-height: 500px;
+    }
+
+    /* Ensure chart titles don't get separated from charts */
+    h5 + .js-plotly-plot {
+        page-break-before: avoid;
+    }
+}
+
+
