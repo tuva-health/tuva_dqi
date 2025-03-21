@@ -16,5 +16,3 @@ jobs:
 
       - name: Dependency Review
         uses: actions/dependency-review-action@v3
-        with:
-          directories: tuva_dqi
