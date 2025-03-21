@@ -1059,17 +1059,16 @@ def change_page(page, json_data):
         return dash.no_update
 
     try:
-        # Parse the data
+        # Parse the data directly as a list of dictionaries
         data = json.loads(json_data)
-        df = pd.DataFrame(data)
 
         # Create rows for the current page
         rows = []
         start_idx = (page - 1) * 10
-        end_idx = min(start_idx + 10, len(df))
+        end_idx = min(start_idx + 10, len(data))
 
         for i in range(start_idx, end_idx):
-            row = df.iloc[i]
+            row = data[i]
             rows.append(
                 dbc.Row(
                     [
@@ -1100,7 +1099,7 @@ def change_page(page, json_data):
                         ),
                         dbc.Col(
                             row["TEST_SUB_TYPE"]
-                            if pd.notna(row["TEST_SUB_TYPE"])
+                            if row.get("TEST_SUB_TYPE") is not None
                             else "",
                             width=2,
                             className="align-self-center table-cell",
@@ -1163,13 +1162,13 @@ def change_page(page, json_data):
                 dbc.Pagination(
                     id="error-pagination",
                     max_value=max(
-                        1, (len(df) + 9) // 10
+                        1, (len(data) + 9) // 10
                     ),  # Ceiling division to get number of pages
                     first_last=True,
                     previous_next=True,
                     active_page=page,
                 )
-                if len(df) > 10
+                if len(data) > 10
                 else html.Div(),
             ]
         )
