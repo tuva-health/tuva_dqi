@@ -258,7 +258,7 @@ def create_test_modal_content(row):
     return modal_content
 
 
-def parse_and_display_csv_file_contents_from_upload(contents, filename):
+def chat_data_table(contents, filename):
     content_type, content_string = contents.split(",")
     decoded = base64.b64decode(content_string)
 
@@ -675,9 +675,9 @@ layout = html.Div(
     Input("upload-data", "contents"),
     State("upload-data", "filename"),
 )
-def update_output(contents, filename):
+def generate_data_table(contents, filename):
     if contents is not None:
-        return parse_and_display_csv_file_contents_from_upload(contents, filename)
+        return chat_data_table(contents, filename)
     return html.Div()
 
 
