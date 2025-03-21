@@ -37,10 +37,4 @@ jobs:
 
       - name: Run tests with pytest
         run: |
-          pytest tests/ --cov=pages --cov-report=xml
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
+          pytest tests/ --cov=pages --cov-report term
