@@ -1,14 +1,16 @@
 import sqlite3
 
 
-def get_db_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect("app_data.db")
+def get_db_connection(db_file_name="app_data.db") -> sqlite3.Connection:
+    """Create a connection to the SQLite database."""
+    conn = sqlite3.connect(db_file_name)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def init_db() -> None:
-    conn = get_db_connection()
+def init_db(db_file_name="app_data.db") -> None:
+    """Initialize the database with required tables."""
+    conn = get_db_connection(db_file_name)
     conn.execute("""
     CREATE TABLE IF NOT EXISTS test_results (
         UNIQUE_ID TEXT PRIMARY KEY,
