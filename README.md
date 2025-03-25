@@ -80,17 +80,10 @@ Any release compatibility would require a version > 0.14.2.
 ### Setting up Tuva dbt Project
 
 1. Create a new dbt project or use an existing one
-2.	Add the Tuva package to your `packages.yml` file, specifying the `dqi-enhancements` branch:
+2.	Add the Tuva package to your `packages.yml` file, specifying tuva version 0.14.3 or later:
 ```yml
-packages:
-  - git: https://github.com/tuva-health/tuva
-    revision: dqi-enhancements  # Use the dqi-enhancements branch
-```
-Alternatively, you can use a specific commit hash:
-```yml
-packages:
-  - git: https://github.com/tuva-health/tuva
-    revision: "24da943e245b97971c90be7ae4ecc091d6272cc1"
+  - package: tuva-health/the_tuva_project
+    version: [">=0.14.3"]
 ```
 3.	Install the package and run dbt building commands:
 ```bash
@@ -107,5 +100,5 @@ dbt test
 5.	Upload these CSV files to the dashboard using the "Import Test Results" feature
 
 ## Development Status
-This dashboard is currently in alpha/early development and has not been officially released. It is designed to work 
-with the `dqi-enhancements` branch of the Tuva dbt package, which contains the necessary data quality components.
+This dashboard is currently in alpha/early development. It is designed to work 
+with Tuva versions 0.14.3 or later, which contains the necessary data quality components.
