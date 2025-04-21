@@ -267,6 +267,9 @@ def chat_data_table(contents, filename):
             # Read the CSV file into a pandas DataFrame
             df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
 
+            # Convert all column names to uppercase
+            df.columns = [col.upper() for col in df.columns]
+
             # Check if this is a chart data file or test results file
             if "DATA_QUALITY_CATEGORY" in df.columns and "GRAPH_NAME" in df.columns:
                 # This is a chart data file
