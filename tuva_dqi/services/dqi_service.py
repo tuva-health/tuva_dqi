@@ -388,7 +388,7 @@ def get_mart_test_summary() -> list:
             .replace("Cms", "CMS")
             .replace("Ed", "ED")
             .replace("Pmpm", "PMPM")
-            .replace('Hcc', 'HCC')
+            .replace("Hcc", "HCC")
         )
 
         # Calculate passing percentage
