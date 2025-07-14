@@ -1539,6 +1539,7 @@ def toggle_mart_modal(n_clicks):
             .replace("Cms", "CMS")
             .replace("Ed", "ED")
             .replace("Pmpm", "PMPM")
+            .replace("Hcc", "HCC")
         )
 
         # Get failing tests for this mart
