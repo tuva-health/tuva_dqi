@@ -27,12 +27,15 @@ def create_chart(graph_name, chart_filter=None):
     # Handle multi-filter: only filter if chart_filter is a non-empty list
     color_discrete_map = None
     filter_active = False
-    if chart_filter and isinstance(chart_filter, list) and 'CHART_FILTER' in df.columns:
-            df = df[df['CHART_FILTER'].isin(chart_filter)]
-            filter_active = True
-            color_sequence = px.colors.qualitative.Plotly
-            color_map = {val: color_sequence[i % len(color_sequence)] for i, val in enumerate(chart_filter)}
-            color_discrete_map = color_map
+    if chart_filter and isinstance(chart_filter, list) and "CHART_FILTER" in df.columns:
+        df = df[df["CHART_FILTER"].isin(chart_filter)]
+        filter_active = True
+        color_sequence = px.colors.qualitative.Plotly
+        color_map = {
+            val: color_sequence[i % len(color_sequence)]
+            for i, val in enumerate(chart_filter)
+        }
+        color_discrete_map = color_map
     else:
         color_discrete_map = None
 
@@ -103,7 +106,7 @@ def create_chart(graph_name, chart_filter=None):
                             fill_color="lavender",
                             align="left",
                         ),
-                        columnwidth=[150] + [120] * (len(pivot_df.columns) - 1)
+                        columnwidth=[150] + [120] * (len(pivot_df.columns) - 1),
                     )
                 ]
             )
@@ -115,11 +118,18 @@ def create_chart(graph_name, chart_filter=None):
             pass
 
     # Case 2: X axis has values, Y axis is empty or N/A - create a bar chart with X axis
-    elif metadata["X_AXIS_DESCRIPTION"] != "N/A" and not all(pd.isna(df["X_AXIS"])) and is_time_series:
+    elif (
+        metadata["X_AXIS_DESCRIPTION"] != "N/A"
+        and not all(pd.isna(df["X_AXIS"]))
+        and is_time_series
+    ):
         # Group by month, color by year, filter by CHART_FILTER if filter is active
         unique_years = df["YEAR"].unique()
         color_sequence = px.colors.qualitative.Plotly
-        color_map = {year: color_sequence[i % len(color_sequence)] for i, year in enumerate(sorted(unique_years))}
+        color_map = {
+            year: color_sequence[i % len(color_sequence)]
+            for i, year in enumerate(sorted(unique_years))
+        }
         if "monthly" in graph_name.lower():
             fig = px.bar(
                 df,
@@ -131,15 +141,33 @@ def create_chart(graph_name, chart_filter=None):
                 hover_data={"YEAR": True, "MONTH": True, "MONTH_YEAR": False},
                 title=title.replace("[", " ").replace("]", ""),
                 labels={
-                    "VALUE": metadata["SUM_DESCRIPTION"].replace( "_", " ") if pd.notna(metadata["SUM_DESCRIPTION"]) else "Value",
+                    "VALUE": metadata["SUM_DESCRIPTION"].replace("_", " ").title()
+                    if pd.notna(metadata["SUM_DESCRIPTION"])
+                    else "Value",
                     "MONTH": "Month",
                     "YEAR": "Year",
                 },
-                barmode="group"
+                barmode="group",
             )
-            fig.update_xaxes(categoryorder="array", categoryarray=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+            fig.update_xaxes(
+                categoryorder="array",
+                categoryarray=[
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                ],
+            )
         else:
-            #for yearly graphs           
+            # for yearly graphs
             fig = px.bar(
                 df,
                 x="YEAR",
@@ -147,11 +175,12 @@ def create_chart(graph_name, chart_filter=None):
                 hover_data={"YEAR": True, "MONTH": False, "MONTH_YEAR": False},
                 title=title.replace("[", " ").replace("]", ""),
                 labels={
-                    "VALUE": metadata["SUM_DESCRIPTION"].replace( "_", " ") if pd.notna(metadata["SUM_DESCRIPTION"]) else "Value",
+                    "VALUE": metadata["SUM_DESCRIPTION"].replace("_", " ").title()
+                    if pd.notna(metadata["SUM_DESCRIPTION"])
+                    else "Value",
                     "YEAR": "Year",
                 },
             )
-
 
     # Case 3: Y axis has values, X axis is empty or N/A - create a bar chart with Y axis as X
     elif (
@@ -167,7 +196,9 @@ def create_chart(graph_name, chart_filter=None):
             color_discrete_map=color_discrete_map if filter_active else None,
             title=title.replace("[", " ").replace("]", ""),
             labels={
-                "VALUE": metadata["SUM_DESCRIPTION"].replace( "_", " ") if pd.notna(metadata["SUM_DESCRIPTION"]) else "Value",
+                "VALUE": metadata["SUM_DESCRIPTION"].replace("_", " ").title()
+                if pd.notna(metadata["SUM_DESCRIPTION"])
+                else "Value",
                 "Y_AXIS": metadata["Y_AXIS_DESCRIPTION"],
             },
         )
@@ -182,7 +213,6 @@ def create_chart(graph_name, chart_filter=None):
         if "over_time" in graph_name.lower():
             fig = px.bar(
                 df,
-                #x=datetime.strptime("X_AXIS", "%m-%d"),  # This will be blank but we'll use the description
                 x="X_AXIS",
                 y="VALUE",
                 color="CHART_FILTER" if color_discrete_map else None,
@@ -190,10 +220,10 @@ def create_chart(graph_name, chart_filter=None):
                 title=title.replace("[", " ").replace("]", ""),
                 barmode="group",
                 labels={
-                    "VALUE": metadata["SUM_DESCRIPTION"].replace( "_", " ")
+                    "VALUE": metadata["SUM_DESCRIPTION"].replace("_", " ")
                     if pd.notna(metadata["SUM_DESCRIPTION"])
                     else "Value",
-                    "X_AXIS":  metadata["X_AXIS_DESCRIPTION"].replace( "_", " "),
+                    "X_AXIS": metadata["X_AXIS_DESCRIPTION"].replace("_", " "),
                 },
             )
         else:
@@ -206,7 +236,7 @@ def create_chart(graph_name, chart_filter=None):
                 color_discrete_map=color_discrete_map,
                 title=title.replace("[", " ").replace("]", ""),
                 labels={
-                    "VALUE": metadata["SUM_DESCRIPTION"].replace( "_", " ")
+                    "VALUE": metadata["SUM_DESCRIPTION"].replace("_", " ")
                     if pd.notna(metadata["SUM_DESCRIPTION"])
                     else "Value",
                     "Y_AXIS": metadata["Y_AXIS_DESCRIPTION"]
@@ -251,9 +281,11 @@ def create_chart(graph_name, chart_filter=None):
             y="VALUE",
             title=title.replace("[", " ").replace("]", ""),
             labels={
-                "VALUE": metadata["SUM_DESCRIPTION"].replace( "_", " ") if pd.notna(metadata["SUM_DESCRIPTION"]) else "Value",
+                "VALUE": metadata["SUM_DESCRIPTION"].replace("_", " ")
+                if pd.notna(metadata["SUM_DESCRIPTION"])
+                else "Value",
                 x_col: x_label,
-            }
+            },
         )
 
     # Improve layout

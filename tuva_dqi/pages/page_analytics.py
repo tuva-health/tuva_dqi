@@ -305,7 +305,7 @@ def chat_data_table(contents, filename):
                             f"{len(filtered_df)} data points imported successfully to database."
                         ),
                         html.P(
-                            f'Detected {filtered_df["GRAPH_NAME"].nunique()} unique charts.'
+                            f"Detected {filtered_df['GRAPH_NAME'].nunique()} unique charts."
                         ),
                         html.P(
                             f"Used {len(valid_columns)} of {len(df.columns)} columns that match the schema."
@@ -1813,6 +1813,7 @@ def update_chart_selector(n_clicks, upload_output):
 
     return options
 
+
 # Callback to show filter options if applicable
 @callback(
     Output("chart-filter-container", "children"), Input("chart-selector", "value")
@@ -1841,9 +1842,10 @@ def update_chart_filter(selected_chart):
                 options=[{"label": val, "value": val} for val in filter_values],
                 value=None,
                 clearable=True,
-                multi = True
+                multi=True,
             ),
-        ], id="filter-wrapper"
+        ],
+        id="filter-wrapper",
     )
 
 
@@ -1851,7 +1853,7 @@ def update_chart_filter(selected_chart):
     Output("chart-display", "children"),
     [
         Input("chart-selector", "value"),
-        Input("chart-filter", "value" ),
+        Input("chart-filter", "value"),
     ],
 )
 def update_chart_display(selected_chart, filter_values):
@@ -1860,14 +1862,18 @@ def update_chart_display(selected_chart, filter_values):
         return html.Div("Please select a chart to display")
 
     # Check if the filter exists
-    #if a chart and filters are not selected, return Error
+    # if a chart and filters are not selected, return Error
     selected_filters = filter_values if filter_values else None
 
     try:
         result = create_chart(selected_chart, selected_filters)
         if selected_filters is None:
             result = create_chart(selected_chart)
-        if result is None or isinstance(result, html.Div) and "No data" in result.children:
+        if (
+            result is None
+            or isinstance(result, html.Div)
+            and "No data" in result.children
+        ):
             return html.Div("Error: No chart data available.")
         return result
     except Exception as e:
@@ -1878,8 +1884,9 @@ def update_chart_display(selected_chart, filter_values):
 
 @callback(
     Output("data-availability-display", "children"),
-    Input("refresh-button", "n_clicks"), Input("output-data-upload", "children"),
-    State("chart-filter-container", "children")
+    Input("refresh-button", "n_clicks"),
+    Input("output-data-upload", "children"),
+    State("chart-filter-container", "children"),
 )
 def update_data_availability(n_clicks, upload_output):
     availability = get_data_availability()
