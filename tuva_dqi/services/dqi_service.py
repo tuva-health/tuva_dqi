@@ -38,9 +38,9 @@ def get_chart_data(graph_name, chart_filter=None) -> DataFrame:
             SELECT * FROM chart_data
             WHERE GRAPH_NAME = '{graph_name}'
         """
-
-        if chart_filter:
-            query += f" AND CHART_FILTER = '{chart_filter}'"
+        if chart_filter and isinstance(chart_filter, (list, tuple)):
+            chart_filter = "('" + "', '".join(chart_filter) + "')"
+            query += f" AND CHART_FILTER IN {chart_filter}"
 
         df = pd.read_sql_query(query, conn)
         conn.close()
