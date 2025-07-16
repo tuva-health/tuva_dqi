@@ -1813,7 +1813,6 @@ def update_chart_selector(n_clicks, upload_output):
 
     return options
 
-
 # Callback to show filter options if applicable
 @callback(
     Output("chart-filter-container", "children"), Input("chart-selector", "value")
@@ -1824,19 +1823,13 @@ def update_chart_filter(selected_chart):
 
     # Get filter values for this chart
     filter_values = get_chart_filter_values(selected_chart)
-
     if not filter_values:
         # Return an empty div if there are no filter values
         return html.Div()
 
     # Get chart metadata to display filter description
     charts_df = get_available_charts()
-    chart_info = charts_df[charts_df["GRAPH_NAME"] == selected_chart]
-
-    if chart_info.empty:
-        return html.Div()
-
-    chart_info = chart_info.iloc[0]
+    chart_info = charts_df[charts_df["GRAPH_NAME"] == selected_chart].iloc[0]
     filter_description = chart_info["FILTER_DESCRIPTION"]
 
     # Create filter dropdown with a pattern-matching ID
@@ -1844,12 +1837,13 @@ def update_chart_filter(selected_chart):
         [
             html.Label(f"Filter by {filter_description}:"),
             dcc.Dropdown(
-                id={"type": "chart-filter", "index": 0},
+                id="chart-filter",
                 options=[{"label": val, "value": val} for val in filter_values],
-                value=filter_values[0] if filter_values else None,
-                clearable=False,
+                value=None,
+                clearable=True,
+                multi = True
             ),
-        ]
+        ], id="filter-wrapper"
     )
 
 
@@ -1857,25 +1851,35 @@ def update_chart_filter(selected_chart):
     Output("chart-display", "children"),
     [
         Input("chart-selector", "value"),
-        Input({"type": "chart-filter", "index": ALL}, "value"),
+        Input("chart-filter", "value" ),
     ],
-    [State("chart-filter-container", "children")],
 )
-def update_chart_display(selected_chart, filter_values, filter_container):
+def update_chart_display(selected_chart, filter_values):
+    print(f"Debug - selected Chart: {selected_chart}, filter values: {filter_values}")
     if not selected_chart:
         return html.Div("Please select a chart to display")
 
-    # Check if the filter exists (if filter_container is not empty)
-    # If there's no filter, we can pass None to create_chart
-    if not filter_container or not filter_values or not filter_values[0]:
-        return create_chart(selected_chart, None)
+    # Check if the filter exists
+    #if a chart and filters are not selected, return Error
+    selected_filters = filter_values if filter_values else None
 
-    return create_chart(selected_chart, filter_values[0])
+    try:
+        result = create_chart(selected_chart, selected_filters)
+        if selected_filters is None:
+            result = create_chart(selected_chart)
+        if result is None or isinstance(result, html.Div) and "No data" in result.children:
+            return html.Div("Error: No chart data available.")
+        return result
+    except Exception as e:
+        print(f"Error creating chart: {str(e)}")
+        # Return an error message if chart creation fails
+        return html.Div(f"Error creating chart: {str(e)}")
 
 
 @callback(
     Output("data-availability-display", "children"),
-    [Input("refresh-button", "n_clicks"), Input("output-data-upload", "children")],
+    Input("refresh-button", "n_clicks"), Input("output-data-upload", "children"),
+    State("chart-filter-container", "children")
 )
 def update_data_availability(n_clicks, upload_output):
     availability = get_data_availability()
