@@ -2,7 +2,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from dash import dcc, html
-from datetime import datetime
 
 from services.dqi_service import get_chart_data
 
